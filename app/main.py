@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.db import SessionDep, make_engine, make_session_factory
 from app.errors import NotFoundError
+from app.routes import register_routes
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
         await session.execute(text("SELECT 1"))
         return {"status": "ok"}
 
+    register_routes(app)
     return app
 
 
