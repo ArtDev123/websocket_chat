@@ -7,9 +7,10 @@ from app.enums import WsClientType
 from app.errors import NotFoundError
 from app.manager import manager
 from app.models import User
+from app.repositories.messages import MessageRepository
 from app.repositories.rooms import RoomRepository
 from app.repositories.users import UserRepository
-from app.schemas import WsErrorOut, WsIncoming, WsSystemOut
+from app.schemas import WsErrorOut, WsIncoming, WsSystemOut, WsMessageOut, WsDmOut
 
 router = APIRouter(tags=["ws"])
 
@@ -63,14 +64,81 @@ async def handle_leave(user: User, data: WsIncoming) -> None:
     )
 
 
+async def handle_message(user: User, data: WsIncoming, session_factory) -> None:
+    if data.room_id is None:
+        await send_error(user.id, "room_id required")
+        return
+
+    text = (data.text or "").strip()
+    if not text:
+        await send_error(user.id, "empty text")
+        return
+
+    if user.id not in manager.rooms.get(data.room_id, set()):
+        await send_error(user.id, "join the room first")
+        return
+
+    async with session_factory() as session:
+        rooms = RoomRepository(session)
+        messages = MessageRepository(session)
+        try:
+            await rooms.get(data.room_id)
+        except NotFoundError:
+            await send_error(user.id, "room not found")
+            return
+        msg = await messages.add_room_message(
+            room_id=data.room_id,
+            sender_id=user.id,
+            text=text,
+        )
+
+    await manager.broadcast_room(data.room_id, WsMessageOut.from_message_model(msg))
+
+
+async def handle_dm(user: User, data: WsIncoming, session_factory) -> None:
+    if data.to_user_id is None:
+        await send_error(user.id, "to_user_id required")
+        return
+
+    text = (data.text or "").strip()
+    if not text:
+        await send_error(user.id, "empty text")
+        return
+
+    if data.to_user_id == user.id:
+        await send_error(user.id, "cannot DM yourself")
+        return
+
+    async with session_factory() as session:
+        users = UserRepository(session)
+        messages = MessageRepository(session)
+        try:
+            await users.get(data.to_user_id)
+        except NotFoundError:
+            await send_error(user.id, "user not found")
+            return
+
+        msg = await messages.add_dm(
+            sender_id=user.id,
+            recipient_id=data.to_user_id,
+            text=text,
+        )
+
+    dto = WsDmOut.from_message_model(msg)
+    await manager.send_dto(user.id, dto)
+    await manager.send_dto(data.to_user_id, dto)
+
+
 async def dispatch(user: User, data: WsIncoming, session_factory) -> None:
     match data.type:
         case WsClientType.JOIN:
             await handle_join(user, data, session_factory)
         case WsClientType.LEAVE:
             await handle_leave(user, data)
-        case WsClientType.MESSAGE | WsClientType.DM:
-            await send_error(user.id, f"{data.type} not implemented yet")
+        case WsClientType.MESSAGE:
+            await handle_message(user, data, session_factory)
+        case WsClientType.DM:
+            await handle_dm(user, data, session_factory)
         case _:
             await send_error(user.id, f"unknown type: {data.type}")
 

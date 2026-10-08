@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 from app.enums import WsClientType, WsServerType
+from app.models import Message
+
 
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=50)
@@ -67,6 +69,17 @@ class WsMessageOut(BaseModel):
     text: str
     created_at: datetime
 
+    @classmethod
+    def from_message_model(cls, msg: Message) -> "WsMessageOut":
+        return WsMessageOut(
+            id=msg.id,
+            room_id=msg.room_id,
+            sender_id=msg.sender_id,
+            sender=msg.sender.username,
+            text=msg.text,
+            created_at=msg.created_at,
+        )
+
 
 class WsDmOut(BaseModel):
     type: WsServerType = WsServerType.DM
@@ -76,3 +89,38 @@ class WsDmOut(BaseModel):
     recipient_id: int
     text: str
     created_at: datetime
+
+    @classmethod
+    def from_message_model(cls, msg: Message) -> "WsDmOut":
+        return WsDmOut(
+            id=msg.id,
+            sender_id=msg.sender_id,
+            sender=msg.sender.username,
+            recipient_id=msg.recipient_id,
+            text=msg.text,
+            created_at=msg.created_at,
+        )
+
+
+class MessageRead(BaseModel):
+    id: int
+    text: str
+    sender_id: int
+    sender: str
+    room_id: int | None = None
+    recipient_id: int | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_message_model(cls, msg: Message) -> "MessageRead":
+        return MessageRead(
+            id=msg.id,
+            text=msg.text,
+            sender_id=msg.sender_id,
+            sender=msg.sender.username,
+            room_id=msg.room_id,
+            recipient_id=msg.recipient_id,
+            created_at=msg.created_at,
+        )

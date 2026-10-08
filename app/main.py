@@ -1,9 +1,12 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.config import settings
@@ -41,6 +44,14 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     register_routes(app)
+
+    static_dir = Path(__file__).resolve().parent / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    @app.get("/")
+    async def index() -> FileResponse:
+        return FileResponse(static_dir / "index.html")
+
     return app
 
 
