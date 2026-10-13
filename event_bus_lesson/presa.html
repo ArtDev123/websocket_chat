@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Продвинутая Архитектура AWS (Часть 1)</title>
+    <!-- Подключаем стили Reveal.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <!-- СВЕТЛАЯ ТЕМА -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/sky.min.css" id="theme">
+    <style>
+        /* Кастомные стили для светлой темы */
+        .reveal h1, .reveal h2, .reveal h3 { color: #232F3E; text-transform: none; font-weight: bold; }
+        .reveal h1 { font-size: 2.2em; }
+        .reveal h2 { font-size: 1.6em; }
+        .reveal .aws-text { color: #333333; font-size: 0.55em; text-align: left; line-height: 1.5; }
+        .reveal .box { border: 2px solid #FF9900; padding: 25px; border-radius: 12px; background: #FFFFFF; margin-top: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .reveal .highlight { color: #D13212; font-weight: bold; }
+        .reveal ul { margin-left: 1.2em; }
+        .reveal li { margin-bottom: 12px; }
+        .diagram { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 25px; font-size: 0.45em; font-family: monospace; }
+        .diagram-node { background: #FF9900; color: #FFFFFF; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; }
+        .diagram-arrow { color: #232F3E; font-size: 2em; font-weight: bold; }
+        .slide-number-custom { position: absolute; bottom: 10px; right: 10px; font-size: 0.4em; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Слайд 1 -->
+            <section>
+                <h1>Продвинутая Архитектура AWS</h1>
+                <p style="color: #666; font-size: 0.6em; margin-top: 40px;">S3 | ECS | SQS | SNS | Lambda | API Gateway</p>
+                <p style="font-size: 0.5em; margin-top: 20px; color: #007EB9;">(Слайд 1 из 50)</p>
+            </section>
+
+            <!-- Слайд 2 -->
+            <section>
+                <h2>1. Эволюция инфраструктуры</h2>
+                <div class="box aws-text">
+                    <p>Современная архитектура прошла долгий путь абстракции:</p>
+                    <ul>
+                        <li><span class="highlight">On-Premise:</span> Управление железом, охлаждением, сетями.</li>
+                        <li><span class="highlight">IaaS (EC2):</span> Аренда виртуальных машин. Вы управляете ОС (Linux/Windows) и патчами безопасности.</li>
+                        <li><span class="highlight">CaaS (ECS):</span> Управление контейнерами. Изолированные среды выполнения (Docker).</li>
+                        <li><span class="highlight">Serverless (Lambda):</span> Вы пишете только код. AWS масштабирует и запускает его.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 3 -->
+            <section>
+                <h2>2. Shared Responsibility Model</h2>
+                <div class="box aws-text">
+                    <p>Безопасность — это разделенная ответственность.</p>
+                    <ul>
+                        <li><b>AWS отвечает за облако:</b> Физическая защита ЦОД, гипервизоры, сетевая инфраструктура.</li>
+                        <li><b>Клиент отвечает за данные в облаке:</b> Настройка политик доступа (IAM), шифрование, логика приложения.</li>
+                        <li><span class="highlight">Важно:</span> В Serverless AWS берет на себя управление ОС, снимая с вас задачи администрирования.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 4 -->
+            <section>
+                <h2>3. Монолит vs Микросервисы</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><b>Монолит:</b> Все компоненты (корзина, каталог, оплата) в одной кодовой базе. Падение одного тянет на дно всё приложение.</li>
+                        <li><b>Микросервисы:</b> Независимые компоненты. Общаются по сети (API/Очереди).</li>
+                        <li><span class="highlight">Плюсы:</span> Изоляция отказов, независимое масштабирование, разные стеки технологий.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 5 -->
+            <section>
+                <h2>4. Event-Driven Architecture (EDA)</h2>
+                <div class="box aws-text">
+                    <p>Событийно-ориентированная архитектура.</p>
+                    <ul>
+                        <li>Компоненты реагируют на изменения состояния (события), а не ждут поллинга.</li>
+                        <li><span class="highlight">Событие (Event):</span> Неизменяемый факт (например, "Файл загружен", "Заказ оплачен").</li>
+                        <li>Снижает связанность (Decoupling) и позволяет масштабировать обработчики независимо.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 6 -->
+            <section>
+                <h2>5. Синхронность vs Асинхронность</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><b>Синхронно (REST):</b> Сервис А вызывает Сервис Б и блокируется, ожидая ответа. Риск каскадных отказов.</li>
+                        <li><b>Асинхронно (SQS/SNS):</b> Сервис А кидает сообщение в очередь и сразу продолжает работу. Сервис Б забирает сообщение, когда готов.</li>
+                        <li><span class="highlight">Защита:</span> Асинхронность защищает базы данных от пиков трафика (Thundering Herd).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 7 -->
+            <section>
+                <h2>6. Идемпотентность</h2>
+                <div class="box aws-text">
+                    <p>Свойство операций в распределенных системах.</p>
+                    <ul>
+                        <li>В облаке случаются сетевые сбои. Сообщение может быть доставлено дважды.</li>
+                        <li><span class="highlight">Идемпотентность:</span> Повторное выполнение функции дает тот же результат, что и первое (без дублирования списания денег).</li>
+                        <li>Реализуется через `Idempotency Key` и проверку статуса транзакции в БД (DynamoDB).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Блок S3 -->
+            <!-- Слайд 8 -->
+            <section>
+                <h2>7. Amazon S3: Базовые концепции</h2>
+                <div class="box aws-text">
+                    <p>S3 (Simple Storage Service) — объектное хранилище.</p>
+                    <ul>
+                        <li><b>Buckets (Корзины):</b> Глобально уникальные пространства имен (как диски).</li>
+                        <li><b>Objects (Объекты):</b> Файлы и их метаданные. Размер одного объекта до 5 ТБ.</li>
+                        <li>Нет настоящих папок, есть только плоская структура ключей (например, `folder/image.jpg` — это просто длинное имя файла).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 9 -->
+            <section>
+                <h2>8. Надежность и Долговечность S3</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><span class="highlight">Durability (Долговечность):</span> 99.999999999% (11 девяток). Риск потери файла ничтожен.</li>
+                        <li>Достигается за счет автоматической репликации каждого файла минимум в 3 физически удаленные Зоны Доступности (AZ).</li>
+                        <li><span class="highlight">Консистентность:</span> Read-after-write. После PUT-запроса, последующий GET мгновенно вернет новую версию файла.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 10 -->
+            <section>
+                <h2>9. Классы хранения (Storage Classes)</h2>
+                <div class="box aws-text">
+                    <p>Оптимизация стоимости хранения.</p>
+                    <ul>
+                        <li><b>S3 Standard:</b> Для горячих данных. Дорогое хранение, бесплатный доступ.</li>
+                        <li><b>S3 Standard-IA:</b> Для редкого доступа (1 раз в месяц). Дешевое хранение, плата за байты при скачивании.</li>
+                        <li><b>S3 Glacier:</b> Для архивов. Дешево, но извлечение занимает от минут до 12 часов.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 11 -->
+            <section>
+                <h2>10. Intelligent-Tiering и Lifecycle</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><span class="highlight">Lifecycle Rules:</span> Автоматическое перемещение старых файлов. "Перенести логи старше 30 дней в Glacier, через год — удалить".</li>
+                        <li><span class="highlight">Intelligent-Tiering:</span> Класс с машинным обучением. Сам переносит файлы между Standard и IA в зависимости от того, как часто к ним обращаются пользователи. Идеально для неизвестных паттернов трафика.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 12 -->
+            <section>
+                <h2>11. Безопасность S3 и Шифрование</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li>Доступ по умолчанию закрыт. Контроль через IAM Policies и Bucket Policies.</li>
+                        <li><span class="highlight">SSE-S3:</span> S3 сам генерирует ключи (AES-256) и прозрачно шифрует данные на дисках.</li>
+                        <li><span class="highlight">SSE-KMS:</span> Использование Key Management Service для тонкого контроля доступа и аудита каждого факта расшифровки (CloudTrail).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 13 -->
+            <section>
+                <h2>12. S3 Pre-signed URLs: Паттерн</h2>
+                <div class="box aws-text">
+                    <p>Делегирование прав на загрузку/скачивание тяжелых файлов без нагрузки на сервера.</p>
+                    <ul>
+                        <li>Бэкенд создает ссылку с подписью IAM и тайм-аутом (5 минут).</li>
+                        <li>Пользователь напрямую загружает файл в S3 по этой ссылке.</li>
+                        <li><span class="highlight">Итог:</span> Нулевая нагрузка на пропускную способность ваших EC2/ECS.</li>
+                    </ul>
+                    <div class="diagram">
+                        <div class="diagram-node" style="background:#007EB9;">Mobile</div>
+                        <div class="diagram-arrow">&rarr;</div>
+                        <div class="diagram-node" style="background:#527FFF;">Lambda (URL)</div>
+                        <div class="diagram-arrow">&rarr;</div>
+                        <div class="diagram-node" style="background:#D13212;">S3 (Direct)</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Слайд 14 -->
+            <section>
+                <h2>13. Multipart Upload и Byte-Range Fetches</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><b>Multipart Upload:</b> Обязательно для файлов больше 100 МБ. Файл бьется на части, загружается параллельно. При обрыве сети перекачивается только сбойный кусок.</li>
+                        <li><b>Byte-Range Fetch:</b> Использование HTTP `Range`. Позволяет скачать конкретные байты (например, только метаданные видео или резюмировать загрузку).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 15 -->
+            <section>
+                <h2>14. S3 Event Notifications</h2>
+                <div class="box aws-text">
+                    <p>Превращает S3 из пассивного склада в активный триггер.</p>
+                    <ul>
+                        <li>Событие `s3:ObjectCreated` может автоматически запустить Lambda, положить сообщение в SQS или SNS.</li>
+                        <li><span class="highlight">Пример:</span> Как только в S3 упало новое фото, Lambda автоматически просыпается, делает кроп картинки для превью и сохраняет результат обратно.</li>
+                    </ul>
+                </div>
+            </section>
+
+             <!-- Слайд 16 -->
+             <section>
+                <h2>15. S3 Object Lock и Versioning</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><b>Versioning (Версионирование):</b> При перезаписи файла сохраняется предыдущая версия. Защита от случайного удаления (Delete Marker).</li>
+                        <li><b>Object Lock (WORM):</b> Write-Once-Read-Many. Аппаратная защита на уровне AWS. Объект невозможно удалить или изменить даже с правами Root, пока не истечет заданный срок. Обязательно для банков и аудита.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 17 -->
+            <section>
+                <h2>16. S3 Select и Glacier Select</h2>
+                <div class="box aws-text">
+                    <p>Продвинутый поиск внутри файлов.</p>
+                    <ul>
+                        <li>Обычно, чтобы найти строку в 10 ГБ CSV-файле, нужно скачать его целиком.</li>
+                        <li><span class="highlight">S3 Select:</span> Позволяет отправить SQL-подобный запрос (`SELECT * FROM s3object`) прямо в S3. AWS отфильтрует данные на своей стороне и вернет вам только 5 МБ нужных строк, экономя время и трафик.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 18 -->
+            <section>
+                <h1>Блок 4: API Gateway</h1>
+                <h3>Управление трафиком на границе сети</h3>
+                <p style="font-size: 0.5em; margin-top: 20px; color: #007EB9;">(Слайд 18 из 50)</p>
+            </section>
+
+            <!-- Слайд 19 -->
+            <section>
+                <h2>17. API Gateway: Типы шлюзов</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><span class="highlight">REST API:</span> Максимальный контроль. Поддерживает сложную трансформацию запросов, кэширование, валидацию схем и монетизацию API.</li>
+                        <li><span class="highlight">HTTP API:</span> Оптимизирован для Serverless. До 71% дешевле и 60% быстрее REST API. Идеально для проксирования в Lambda без лишней логики.</li>
+                        <li><span class="highlight">WebSocket API:</span> Для двусторонней связи (чаты, риал-тайм дашборды). Поддерживает постоянное соединение.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 20 -->
+            <section>
+                <h2>18. Защита от перегрузок (Throttling)</h2>
+                <div class="box aws-text">
+                    <p>Алгоритм Token Bucket ("Корзина токенов") спасает ваши базы данных.</p>
+                    <ul>
+                        <li><b>Rate (Скорость):</b> Как быстро новые токены (разрешения) капают в корзину (например, 1000/сек).</li>
+                        <li><b>Burst (Всплеск):</b> Максимальный размер корзины. Позволяет обработать кратковременный спайк трафика (например, 2000 запросов разом).</li>
+                        <li>Лишние запросы не доходят до Lambda, а мгновенно получают `429 Too Many Requests`.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 21 -->
+            <section>
+                <h2>19. Оптимизация: API Caching</h2>
+                <div class="box aws-text">
+                    <p>Кэширование результатов сложных запросов.</p>
+                    <ul>
+                        <li>Позволяет сократить количество вызовов бэкенда (Lambda) и баз данных (DynamoDB/RDS).</li>
+                        <li>Ответ сохраняется в памяти шлюза (TTL до 1 часа).</li>
+                        <li><span class="highlight">Результат:</span> Задержка (Latency) падает с 300 мс до 15 мс. Финансовая экономия на стоимости вызовов Lambda.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 22 -->
+            <section>
+                <h2>20. Стратегии Авторизации</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><span class="highlight">Amazon Cognito:</span> Встроенная проверка OIDC/JWT токенов. Не требует написания кода.</li>
+                        <li><span class="highlight">IAM Auth:</span> Использование подписей AWS SigV4. Идеально для взаимодействия "сервис-сервис" (B2B).</li>
+                        <li><span class="highlight">Lambda Custom Authorizer:</span> Вызов специальной Lambda для сложной кастомной логики (например, поход в старую базу данных для проверки API-ключа).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 23 -->
+            <section>
+                <h2>21. Продвинутые интеграции</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><b>Lambda Proxy Integration:</b> HTTP-запрос передается в Lambda "как есть" (цельным JSON). Lambda сама парсит заголовки и тело.</li>
+                        <li><span class="highlight">AWS Service Integration:</span> Прямое подключение API Gateway к DynamoDB или SQS!</li>
+                        <li><i>Пример:</i> API Gateway использует язык шаблонов VTL, чтобы превратить HTTP POST запрос сразу в сообщение SQS, <span class="highlight">вообще не вызывая Lambda</span> (экономия 100% стоимости вычислений).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 24 -->
+            <section>
+                <h2>22. Canary Deployments</h2>
+                <div class="box aws-text">
+                    <p>Безопасный релиз новых версий API.</p>
+                    <ul>
+                        <li>Вы выкатываете версию API v2, но не хотите рисковать всеми пользователями.</li>
+                        <li>Настройка Canary направляет <span class="highlight">90% трафика на стабильную v1</span>, и <span class="highlight">10% трафика на новую v2</span>.</li>
+                        <li>Инженеры мониторят ошибки на v2. Если всё ок, доля плавно увеличивается до 100%.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Блок LAMBDA -->
+            <!-- Слайд 25 -->
+            <section>
+                <h1>Блок 5: AWS Lambda</h1>
+                <h3>Serverless вычисления "под капотом"</h3>
+                <p style="font-size: 0.5em; margin-top: 20px; color: #007EB9;">(Слайд 25 из 50)</p>
+            </section>
+
+            <!-- Слайд 26 -->
+            <section>
+                <h2>23. Что такое AWS Lambda?</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li>Компьютинг, управляемый событиями. Код запускается только когда есть триггер (S3, API GW, SQS, Cron).</li>
+                        <li>Вы платите за <b>Миллисекунды</b> выполнения. 0 вызовов = $0.</li>
+                        <li>Работает поверх <span class="highlight">Firecracker microVMs</span> — гипервизора с открытым исходным кодом от AWS, обеспечивающего жесткую изоляцию при старте за ~125 мс.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 27 -->
+            <section>
+                <h2>24. Жизненный цикл вызова Lambda</h2>
+                <div class="box aws-text">
+                    <p>Фазы работы функции:</p>
+                    <ol>
+                        <li><b>Init:</b> Старт microVM, скачивание кода, запуск Runtime (Node/Python), выполнение кода ВНЕ хэндлера (глобальные переменные).</li>
+                        <li><b>Invoke:</b> Выполнение самого обработчика (Handler) бизнес-логики.</li>
+                        <li><b>Shutdown:</b> Среда "замораживается" для переиспользования или уничтожается при простое.</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Слайд 28 -->
+            <section>
+                <h2>25. Cold Starts (Холодные старты)</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><span class="highlight">Проблема:</span> Фаза Init занимает время. Первый вызов Lambda после долгого простоя (или резкий скачок конкурентных вызовов) отвечает дольше на 1-3 секунды.</li>
+                        <li><span class="highlight">Решение 1:</span> Писать легкий код вне хэндлера (не подключать тяжелые библиотеки).</li>
+                        <li><span class="highlight">Решение 2 (Provisioned Concurrency):</span> Заплатить AWS, чтобы X сред всегда были "теплыми". Гарантирует P99 Latency < 50ms.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 29 -->
+            <section>
+                <h2>26. Оптимизация памяти (FinOps)</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li>В Lambda вы не выбираете CPU. Вы выбираете только <span class="highlight">Объем памяти (от 128 МБ до 10 ГБ)</span>.</li>
+                        <li>Мощность CPU выделяется <b>пропорционально</b> памяти. (1769 МБ = 1 полный vCPU).</li>
+                        <li><i>Секрет FinOps:</i> Поднятие памяти с 128 МБ до 1024 МБ может ускорить функцию в 10 раз. Вы заплатите за бóльшую память, но за в 10 раз меньшее время (миллисекунды) — в итоге функция станет <b>дешевле</b>!</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 30 -->
+            <section>
+                <h2>27. Lambda внутри VPC (Hyperplane ENI)</h2>
+                <div class="box aws-text">
+                    <p>Как Lambda ходит в вашу приватную базу данных (RDS):</p>
+                    <ul>
+                        <li>Раньше Lambda прикрепляла сетевой интерфейс (ENI) при каждом холодном старте (занимало до 15 сек).</li>
+                        <li>Сейчас AWS использует <span class="highlight">Hyperplane ENI</span>. Интерфейс создается 1 раз при деплое.</li>
+                        <li>Подключение "теплых" или "холодных" лямбд к VPC теперь занимает миллисекунды.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 31 -->
+            <section>
+                <h2>28. Асинхронные вызовы и Retries</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li>Когда S3 или SNS вызывают Lambda, они делают это асинхронно. Событие падает во внутреннюю очередь AWS.</li>
+                        <li>Если код Lambda падает с ошибкой, <span class="highlight">AWS сам повторяет вызов 2 раза</span> с экспоненциальной задержкой.</li>
+                        <li>Обязательно: писать код идемпотентно, иначе при Retries функция может дважды списать деньги клиента.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 32 -->
+            <section>
+                <h2>29. Lambda Destinations</h2>
+                <div class="box aws-text">
+                    <p>Маршрутизация результатов асинхронных вызовов без написания кода.</p>
+                    <ul>
+                        <li><span class="highlight">On Success:</span> Отправить JSON ответа в EventBridge, SQS или SNS для запуска следующего шага пайплайна.</li>
+                        <li><span class="highlight">On Failure:</span> Если все 3 попытки (Retries) упали, автоматически переслать payload с причиной ошибки в DLQ (Dead Letter Queue) для разбора инженерами. Спасает от потери данных!</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Блок SQS -->
+            <!-- Слайд 33 -->
+            <section>
+                <h1>Блок 6: Amazon SQS</h1>
+                <h3>Асинхронные Очереди Сообщений</h3>
+                <p style="font-size: 0.5em; margin-top: 20px; color: #007EB9;">(Слайд 33 из 50)</p>
+            </section>
+
+            <!-- Слайд 34 -->
+            <section>
+                <h2>30. Зачем нужны очереди (SQS)?</h2>
+                <div class="box aws-text">
+                    <p>Буферизация и сглаживание пиковых нагрузок (Traffic Shaping).</p>
+                    <ul>
+                        <li>Первый сервис AWS (запущен в 2004).</li>
+                        <li>Вместо того чтобы "валить" базу данных 10,000 запросами в секунду, API складывает сообщения в SQS.</li>
+                        <li>Воркеры (ECS или Lambda) вычитывают очередь с комфортной для базы скоростью. База защищена на 100%.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 35 -->
+            <section>
+                <h2>31. Visibility Timeout</h2>
+                <div class="box aws-text">
+                    <p>Механизм защиты от падения воркеров.</p>
+                    <ul>
+                        <li>Консьюмер (ECS Task) берет сообщение. Сообщение <span class="highlight">не удаляется</span>, а становится "невидимым" для других на 30 секунд.</li>
+                        <li>Если задача успешно выполнена, консьюмер обязан явно послать API-команду `DeleteMessage`.</li>
+                        <li>Если консьюмер "умер" в процессе, через 30 сек сообщение снова появится в очереди, и его подхватит другой живой контейнер.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Конец Части 2 -->
+            <section>
+                <h2>Конец Части 2</h2>
+                <p>Далее: Продвинутые паттерны SQS, SNS Fan-out, ECS Fargate и полные архитектурные диаграммы! (Слайды 36-50)</p>
+            </section>
+
+            <!-- Слайд 36 -->
+            <section>
+                <h2>32. Amazon SNS: Pub/Sub</h2>
+                <div class="box aws-text">
+                    <p>SNS (Simple Notification Service) — шина мгновенных уведомлений.</p>
+                    <ul>
+                        <li>Паттерн Publish/Subscribe (Издатель/Подписчик). В отличие от SQS (Pull), SNS проталкивает (Push) сообщения подписчикам.</li>
+                        <li><b>Издатель:</b> Публикует 1 сообщение в логический "Топик" (Topic).</li>
+                        <li><b>Подписчики:</b> SQS очереди, Lambda, HTTP-вебхуки, Email, SMS.</li>
+                        <li><span class="highlight">Важно:</span> SNS не хранит сообщения долго. Если подписчик недоступен длительное время, сообщение теряется (если не настроена DLQ).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 37 -->
+            <section>
+                <h2>33. Паттерн: Fan-out (Веерная рассылка)</h2>
+                <div class="box aws-text">
+                    <p>Ключевой паттерн для слабосвязанных микросервисов.</p>
+                    <ul>
+                        <li><b>Проблема:</b> При новом заказе нужно уведомить Склад, Биллинг и Доставку. Прямые вызовы (REST) убьют систему при пиковой нагрузке.</li>
+                        <li><b>Решение:</b> Сервис Заказов стреляет событием в `SNS Topic`.</li>
+                        <li>К топику подключены 3 `SQS Очереди` (Склад, Биллинг, Доставка). SNS мгновенно дублирует payload во все три очереди.</li>
+                        <li>Микросервисы вычитывают свои SQS в комфортном для них темпе.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Блок ECS FARGATE -->
+            <!-- Слайд 38 -->
+            <section>
+                <h1>Блок 7: Amazon ECS и Fargate</h1>
+                <h3>Оркестрация контейнеров в облаке</h3>
+                <p style="font-size: 0.5em; margin-top: 20px; color: #007EB9;">(Слайд 38 из 50)</p>
+            </section>
+
+            <!-- Слайд 39 -->
+            <section>
+                <h2>34. Зачем нужны Контейнеры?</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><span class="highlight">Docker-контейнер</span> — стандартизированный пакет, содержащий только код, библиотеки и зависимости.</li>
+                        <li>В отличие от Виртуальной Машины, не имеет своей ОС. Использует ядро хостовой машины.</li>
+                        <li><b>Плюсы:</b> Весит мегабайты (а не гигабайты), запускается за секунды, работает абсолютно одинаково на ноутбуке разработчика и в облаке AWS.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 40 -->
+            <section>
+                <h2>35. Amazon ECS (Elastic Container Service)</h2>
+                <div class="box aws-text">
+                    <p>Проприетарный оркестратор AWS (альтернатива Kubernetes).</p>
+                    <ul>
+                        <li><b>Control Plane (Управляющий слой):</b> Бесплатный мозг системы. Следит за состоянием, перезапускает упавшие контейнеры, балансирует сеть.</li>
+                        <li><b>Data Plane (Слой данных):</b> Где физически работают контейнеры. Выбирается инженером:
+                            <ul>
+                                <li><i>EC2 Launch Type:</i> Вы сами администрируете серверы.</li>
+                                <li><span class="highlight">AWS Fargate:</span> Вы вообще не видите серверов. Serverless для контейнеров.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 41 -->
+            <section>
+                <h2>36. Иерархия ECS: Cluster > Service > Task</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li><b>Task Definition:</b> Эскиз приложения (JSON). Какой образ скачать, сколько RAM/CPU выдать.</li>
+                        <li><b>Task (Задача):</b> Запущенный экземпляр Task Definition (один или несколько связанных контейнеров).</li>
+                        <li><b>Service (Сервис):</b> Менеджер поддержания жизнеспособности. Если вы указали 5 Tasks, и один упал (Out Of Memory), Service мгновенно поднимет новый.</li>
+                        <li><b>Cluster:</b> Логическая граница для Сервисов (сеть и IAM права).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 42 -->
+            <section>
+                <h2>37. Балансировка и Dynamic Port Mapping</h2>
+                <div class="box aws-text">
+                    <p>Интеграция с Application Load Balancer (ALB).</p>
+                    <ul>
+                        <li>Нельзя жестко задать порт 80 для контейнера, если их запускается 10 штук на одном EC2 сервере (конфликт портов).</li>
+                        <li>ECS выдает <span class="highlight">динамические случайные порты</span> (например, 32768) и автоматически сообщает ALB: "Новый контейнер доступен на 10.0.1.5:32768".</li>
+                        <li>Пользователь стучится на стандартный HTTPS порт ALB (443), а ALB прозрачно проксирует трафик внутрь кластера.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 43 -->
+            <section>
+                <h2>38. Service Discovery (Cloud Map)</h2>
+                <div class="box aws-text">
+                    <p>Как микросервисы находят друг друга без ALB?</p>
+                    <ul>
+                        <li>Когда Service A хочет вызвать Service B (например, биллинг), он не может хардкодить IP, так как контейнеры постоянно умирают.</li>
+                        <li><span class="highlight">Решение:</span> AWS Cloud Map (Service Discovery).</li>
+                        <li>ECS автоматически регистрирует IP каждого нового контейнера во внутренней зоне DNS (Route 53). Service A просто делает запрос на `http://billing.internal`, и DNS возвращает список живых IP-адресов.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 44 -->
+            <section>
+                <h2>39. Автомасштабирование (Target Tracking)</h2>
+                <div class="box aws-text">
+                    <ul>
+                        <li>Система должна расширяться и сужаться в зависимости от трафика.</li>
+                        <li>Вы задаете метрику: <span class="highlight">Средняя загрузка CPU = 70%</span>.</li>
+                        <li>Если на сайт пришла толпа, CPU прыгает до 90%. ECS Auto Scaling вычисляет формулу и запускает (Scale Out) 5 новых Tasks для размазывания нагрузки.</li>
+                        <li>Ночью CPU падает до 20%, и ECS убивает лишние контейнеры (Scale In), чтобы вы не платили за простой оборудования.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Блок АРХИТЕКТУРА -->
+            <!-- Слайд 45 -->
+            <section>
+                <h1>Блок 8: Продвинутые Паттерны и Сборка</h1>
+                <p style="font-size: 0.5em; margin-top: 20px; color: #007EB9;">(Слайд 45 из 50)</p>
+            </section>
+
+            <!-- Слайд 46 -->
+            <section>
+                <h2>40. Паттерн Strangler Fig (Миграция)</h2>
+                <div class="box aws-text">
+                    <p>Безопасный распил старого Монолита.</p>
+                    <ul>
+                        <li>Переписывать всю систему с нуля — риск для бизнеса.</li>
+                        <li>Перед монолитом ставится API Gateway. Все запросы идут в старую систему.</li>
+                        <li>Команда пишет один новый микросервис (например, /reviews) на Lambda/ECS. API Gateway перенаправляет только путь `/reviews` в новую архитектуру.</li>
+                        <li>Постепенно (функция за функцией) новый код "душит" монолит, пока тот не будет выключен.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 47 -->
+            <section>
+                <h2>41. Паттерн Saga (Распределенные Транзакции)</h2>
+                <div class="box aws-text">
+                    <p>Консистентность данных между микросервисами.</p>
+                    <ul>
+                        <li>В монолите есть `SQL ROLLBACK`. В микросервисах (где БД у каждого своя) его нет.</li>
+                        <li>Если сервис Оплаты списал деньги, а сервис Склада ответил ошибкой 500 (товара нет), транзакция зависла.</li>
+                        <li><span class="highlight">Saga (Оркестрация):</span> Использует AWS Step Functions как дирижера. При ошибке склада он автоматически вызывает "Компенсирующую транзакцию" (Refund) в сервисе Оплаты.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 48 -->
+            <section>
+                <h2>42. Финальная Архитектура: Шаг 1 (Edge)</h2>
+                <div class="box aws-text">
+                    <p>Строим глобальное приложение обработки видео.</p>
+                    <ul>
+                        <li><b>DNS:</b> Route 53 направляет пользователя.</li>
+                        <li><b>CDN:</b> Amazon CloudFront терминирует SSL-соединение на ближайшем к пользователю Edge-узле (например, в Европе).</li>
+                        <li><b>Безопасность:</b> API Gateway с подключенным AWS WAF блокирует хакеров и ботнеты на границе сети.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 49 -->
+            <section>
+                <h2>43. Финальная Архитектура: Шаг 2 (Загрузка)</h2>
+                <div class="box aws-text">
+                    <p>Паттерн Pre-signed URL в действии.</p>
+                    <div class="diagram">
+                        <div class="diagram-node" style="background:#007EB9;">Mobile App</div>
+                        <div class="diagram-arrow">&rarr;</div>
+                        <div class="diagram-node">API GW</div>
+                        <div class="diagram-arrow">&rarr;</div>
+                        <div class="diagram-node" style="background:#527FFF;">Lambda Auth</div>
+                    </div>
+                    <ul style="margin-top: 15px;">
+                        <li>Lambda проверяет токен и возвращает подписанный S3 URL на 10 минут.</li>
+                        <li>Мобильное приложение загружает тяжелое видео (1 ГБ) прямым HTTP PUT-запросом в корзину `S3 Uploads Bucket`, минуя сервера.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Слайд 50 -->
+            <section>
+                <h2>44. Финальная Архитектура: Шаг 3 (Обработка)</h2>
+                <div class="box aws-text">
+                    <p>Событийно-ориентированная магия и Fan-Out.</p>
+                    <ul>
+                        <li>Как только 1 ГБ загружен, S3 стреляет событием `ObjectCreated` в SNS.</li>
+                        <li>SNS клонирует сообщение в две `SQS очереди`.</li>
+                        <li><span class="highlight">Ветка 1 (Fargate):</span> Читает SQS 1. Контейнер скачивает видео и жмет его в 720p (работает 15 минут). Готовое видео сохраняется в `S3 Public Bucket`.</li>
+                        <li><span class="highlight">Ветка 2 (Lambda):</span> Читает SQS 2. Обновляет DynamoDB пользователя ("новое видео добавлено") за 100 мс.</li>
+                        <li>Пользователь смотрит готовое видео через CloudFront из кэша.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Заключение -->
+            <section>
+                <h2>AWS Architecture: Итоги</h2>
+                <div class="box aws-text" style="text-align: center;">
+                    <p style="font-size: 1.5em; font-weight: bold; color: #FF9900;">Build, Scale, Automate.</p>
+                    <ul style="display: inline-block; text-align: left; margin-top: 20px;">
+                        <li>Стройте событийно (EDA).</li>
+                        <li>Защищайтесь очередями (SQS/DLQ).</li>
+                        <li>Используйте Serverless для переменной нагрузки.</li>
+                        <li>Никогда не хардкодьте.</li>
+                    </ul>
+                    <p style="margin-top: 30px;">Спасибо за внимание! Вопросы?</p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script>Reveal.initialize({ hash: true, slideNumber: true });</script>
+</body>
+</html>
