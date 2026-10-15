@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Микросервисная архитектура</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/sky.min.css" id="theme">
+    <style>
+        .reveal h1, .reveal h2, .reveal h3 {
+            color: #1e293b;
+            text-transform: none;
+            font-weight: 750;
+            letter-spacing: -0.02em;
+        }
+        .reveal h1 { font-size: 52px; line-height: 1.15; }
+        .reveal h2 { font-size: 32px; margin: 0 0 10px; line-height: 1.2; }
+        .reveal .slides section { text-align: left; padding: 6px 8px 0; }
+        .reveal h1, .reveal h2, .kicker, .title-sub { text-align: center; }
+        .reveal .aws-text { color: #1f2937; font-size: 20px; line-height: 1.38; text-align: left; }
+        .reveal .box {
+            border: 2px solid #0284c7;
+            padding: 14px 18px 16px;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+        }
+        .reveal .highlight { color: #b91c1c; font-weight: 750; }
+        .reveal .ok { color: #047857; font-weight: 750; }
+        .reveal ul { margin: 6px 0 0; display: block; }
+        .reveal li { margin-bottom: 5px; line-height: 1.32; }
+        .kicker { color: #0369a1; font-size: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .title-sub { color: #475569; font-size: 22px; margin-top: 14px; }
+        .lead { margin: 0 0 6px; }
+        .note {
+            margin: 10px 0 0;
+            background: #f0f9ff;
+            border-left: 4px solid #0284c7;
+            padding: 8px 12px;
+            border-radius: 0 8px 8px 0;
+        }
+        .flow, .pair { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .n {
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-weight: 750;
+            text-align: center;
+            min-width: 92px;
+            line-height: 1.2;
+            font-size: 15px;
+            box-shadow: 0 3px 0 rgba(15, 23, 42, 0.12);
+        }
+        .n small { display: block; font-weight: 560; opacity: 0.92; font-size: 12px; margin-top: 2px; }
+        .a { color: #334155; font-weight: 800; font-size: 22px; }
+        .n-client { background: #334155; }
+        .n-gw { background: #0369a1; }
+        .n-svc { background: #0f766e; }
+        .n-db { background: #6d28d9; }
+        .n-rabbit { background: #c2410c; }
+        .n-kafka { background: #1d4ed8; }
+        .n-saga { background: #b45309; }
+        .n-bad { background: #b91c1c; }
+        .n-ok { background: #047857; }
+        .n-muted { background: #64748b; }
+        .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+        .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; background: #fff; }
+        .card h3 { font-size: 18px; margin: 0 0 6px; text-align: left; }
+        .card p, .card li { font-size: 16px; }
+        .card.bad { border-color: #fecaca; background: #fff7f7; }
+        .card.good { border-color: #a7f3d0; background: #f0fdf4; }
+        .spectrum { display: flex; gap: 6px; margin-top: 12px; }
+        .sp { flex: 1; color: #fff; border-radius: 8px; padding: 8px 4px; text-align: center; font-size: 13px; font-weight: 750; line-height: 1.2; }
+        .sp small { display: block; font-weight: 560; font-size: 11px; opacity: 0.92; }
+        .seq { margin-top: 8px; display: grid; gap: 4px; }
+        .seq-row { display: grid; grid-template-columns: 148px 28px 170px 1fr; align-items: center; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 4px 8px; }
+        .who { font-weight: 750; color: #0f766e; font-size: 15px; }
+        .msg { font-size: 15px; color: #334155; }
+        table.cmp { width: 100%; border-collapse: collapse; font-size: 16px; margin-top: 8px; }
+        table.cmp th, table.cmp td { border-bottom: 1px solid #e2e8f0; padding: 5px 8px; text-align: left; vertical-align: top; }
+        table.cmp th { color: #0f172a; background: #f1f5f9; }
+        .reveal pre {
+            font-size: 15px;
+            line-height: 1.35;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            width: auto;
+            margin: 8px 0 0;
+            box-shadow: none;
+        }
+        .reveal pre code { background: transparent; color: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .pic { display: block; width: 100%; height: auto; margin-top: 8px; }
+        .legend { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+        .legend span { font-size: 13px; color: #334155; display: flex; align-items: center; gap: 4px; }
+        .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+        .steps { margin: 6px 0 0; padding-left: 1.2em; }
+        .steps li { margin-bottom: 3px; }
+        .tiny { font-size: 15px; color: #475569; margin: 6px 0 0; }
+    </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<section>
+    <p class="kicker">Лекция</p>
+    <h1>Микросервисная архитектура</h1>
+    <p class="title-sub">Границы сервиса, свои базы, шлюз, RabbitMQ, Kafka и сага</p>
+    <svg class="pic" viewBox="0 0 1100 250" aria-label="Клиент проходит через шлюз к сервисам со своими базами и общей шиной">
+        <rect x="40" y="70" width="140" height="70" rx="12" fill="#334155"/>
+        <text x="110" y="112" text-anchor="middle" fill="#fff" font-size="20" font-family="sans-serif">Клиент</text>
+        <polygon points="200,105 250,105 250,95 280,115 250,135 250,125 200,125" fill="#94a3b8"/>
+        <rect x="300" y="60" width="170" height="90" rx="12" fill="#0369a1"/>
+        <text x="385" y="100" text-anchor="middle" fill="#fff" font-size="20" font-family="sans-serif">API Gateway</text>
+        <text x="385" y="124" text-anchor="middle" fill="#e0f2fe" font-size="14" font-family="sans-serif">JWT · маршрут · лимит</text>
+        <polygon points="490,105 540,105 540,95 570,115 540,135 540,125 490,125" fill="#94a3b8"/>
+        <rect x="590" y="20" width="150" height="58" rx="10" fill="#0f766e"/>
+        <rect x="760" y="20" width="150" height="58" rx="10" fill="#0f766e"/>
+        <rect x="930" y="20" width="140" height="58" rx="10" fill="#0f766e"/>
+        <text x="665" y="55" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">Заказы</text>
+        <text x="835" y="55" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">Оплата</text>
+        <text x="1000" y="55" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">Склад</text>
+        <rect x="610" y="92" width="110" height="36" rx="8" fill="#6d28d9"/>
+        <rect x="780" y="92" width="110" height="36" rx="8" fill="#6d28d9"/>
+        <rect x="945" y="92" width="110" height="36" rx="8" fill="#6d28d9"/>
+        <text x="665" y="116" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">своя БД</text>
+        <text x="835" y="116" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">своя БД</text>
+        <text x="1000" y="116" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">своя БД</text>
+        <rect x="590" y="160" width="480" height="64" rx="12" fill="#1d4ed8"/>
+        <text x="830" y="188" text-anchor="middle" fill="#fff" font-size="18" font-family="sans-serif">Kafka — журнал событий</text>
+        <text x="830" y="210" text-anchor="middle" fill="#dbeafe" font-size="14" font-family="sans-serif">факты, которые можно перечитать</text>
+    </svg>
+    <p class="tiny" style="text-align:center;">Стрелки листают слайды. Номер слайда — в правом нижнем углу.</p>
+</section>
+
+<section>
+    <h2>1. Карта лекции</h2>
+    <div class="box aws-text">
+        <p class="lead">Микросервис — это не «много маленьких приложений». Это способ провести границы так, чтобы одну часть системы можно было менять, выпускать и ронять, не таща за собой остальные. Дальше разбираем, по каким правилам граница проводится и какой обычный набор деталей её держит.</p>
+        <div class="cols-3">
+            <div class="card">
+                <h3>Границы</h3>
+                <p>Связанность и связность. Как резать систему. Почему у сервиса своя база, а чужие таблицы ему не принадлежат.</p>
+            </div>
+            <div class="card">
+                <h3>Вход и вызовы</h3>
+                <p>API Gateway. Синхронный запрос туда, где лежат данные. Почему длинная цепочка HTTP-вызовов становится одной аварией.</p>
+            </div>
+            <div class="card">
+                <h3>Шина и согласие</h3>
+                <p>Команда и событие. RabbitMQ и Kafka. Сага, компенсации, идемпотентность и исходящий ящик. Один сквозной заказ.</p>
+            </div>
+        </div>
+        <p class="note">Сквозной пример один и тот же: интернет-магазин. Анна покупает наушники за 2490 ₽, заказ номер <b>100500</b>. Рядом, где полезно, есть тот же приём на учебном чате: пользователи и комнаты — разные сервисы.</p>
+    </div>
+</section>
+
+<section>
+    <h2>2. Монолит изнутри</h2>
+    <div class="box aws-text">
+        <p class="lead">Монолит — одно приложение и один процесс (или много копий одного и того же процесса). Каталог, корзина, оплата и письма лежат в одной кодовой базе и обычно в одной базе. Вызов соседнего модуля — это вызов функции в памяти, общая транзакция базы его накрывает целиком.</p>
+        <svg class="pic" viewBox="0 0 1040 230" role="img">
+            <rect x="20" y="16" width="620" height="198" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
+            <text x="330" y="44" text-anchor="middle" fill="#0f172a" font-size="18" font-family="sans-serif" font-weight="700">один процесс, один релиз</text>
+            <rect x="48" y="64" width="170" height="54" rx="8" fill="#0f766e"/><text x="133" y="97" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">каталог</text>
+            <rect x="238" y="64" width="170" height="54" rx="8" fill="#0f766e"/><text x="323" y="97" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">заказы</text>
+            <rect x="428" y="64" width="180" height="54" rx="8" fill="#0f766e"/><text x="518" y="97" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">оплата</text>
+            <text x="330" y="148" text-anchor="middle" fill="#0369a1" font-size="16" font-family="sans-serif">вызов функции · одна SQL-транзакция · ROLLBACK</text>
+            <rect x="180" y="164" width="300" height="36" rx="8" fill="#6d28d9"/>
+            <text x="330" y="188" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">одна PostgreSQL, общие таблицы</text>
+            <rect x="700" y="40" width="310" height="150" rx="14" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+            <text x="855" y="78" text-anchor="middle" fill="#9a3412" font-size="18" font-family="sans-serif" font-weight="700">что это даёт</text>
+            <text x="855" y="110" text-anchor="middle" fill="#7c2d12" font-size="15" font-family="sans-serif">простой отладчик и один деплой</text>
+            <text x="855" y="136" text-anchor="middle" fill="#7c2d12" font-size="15" font-family="sans-serif">JOIN и чужие строки рядом</text>
+            <text x="855" y="162" text-anchor="middle" fill="#7c2d12" font-size="15" font-family="sans-serif">откат заказа и оплаты вместе</text>
+        </svg>
+        <p class="tiny">Пока команда одна и предметная область умещается в голове, эта простота стоит дороже любой «правильной» схемы.</p>
+    </div>
+</section>
+
+<section>
+    <h2>3. Где монолит уместен</h2>
+    <div class="box aws-text">
+        <p class="lead">Монолит ломается не от количества строк, а от того, что разные части жизни начинают мешать друг другу в одном релизе и в одной базе. До этого момента разрезание на сервисы добавляет сеть, отказы и расписание данных, а скорости разработке не прибавляет.</p>
+        <ul>
+            <li><span class="ok">Оставить монолитом</span> стоит продукт с одной командой, общей моделью данных и редкими независимыми пиками нагрузки. Учебный чат в одном процессе — нормальный монолит: пользователи, комнаты и сокет живут одной транзакцией.</li>
+            <li><span class="highlight">Резать пора</span>, когда оплата не может выехать, потому что в том же релизе переписывают ленту, когда отчёт по каталогу кладёт базу заказов, или когда две команды правят одни и те же модули и блокируют друг друга.</li>
+            <li>Переезд делают куском. Снаружи остаётся прежний вход, а новый сервис забирает одну способность. Монолит для этой способности становится тонким клиентом. Так система не переписывается «в микросервисы» за один квартал.</li>
+            <li>Плохой повод для разреза — мода и диаграмма, на которой много прямоугольников. Хороший повод — независимый релиз и независимый отказ уже болят на практике.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>4. Что такое микросервис</h2>
+    <div class="box aws-text">
+        <p class="lead">Микросервис — отдельно развёрнутое приложение вокруг одной бизнес-способности. У него свой код, свой цикл выпуска и свои данные. Соседи общаются с ним по сети: синхронным запросом или сообщением. Общей памяти и общей транзакции базы между ними нет.</p>
+        <div class="cols">
+            <div class="card good">
+                <h3>Сервис умеет</h3>
+                <ul>
+                    <li>выпускаться своим пайплайном, пока сосед стоит на старой версии;</li>
+                    <li>иметь свой пул соединений, свои индексы и свой масштаб;</li>
+                    <li>упасть так, чтобы остальные отвечали хотя бы на свои запросы;</li>
+                    <li>хранить модель так, как удобно его задаче.</li>
+                </ul>
+            </div>
+            <div class="card bad">
+                <h3>Сервис не обещает</h3>
+                <ul>
+                    <li>что чужие данные обновятся в ту же миллисекунду;</li>
+                    <li>что цепочка из пяти HTTP-вызовов откатится одним ROLLBACK;</li>
+                    <li>что «маленький» сервис автоматически проще большого модуля;</li>
+                    <li>что сеть между процессами бесплатна и надёжна.</li>
+                </ul>
+            </div>
+        </div>
+        <p class="note">Размер тут ни при чём. Платёжный сервис может быть большим. Смысл в границе: одна причина меняться и данные, которыми он один имеет право распоряжаться.</p>
+    </div>
+</section>
+
+<section>
+    <h2>5. Цена распределения</h2>
+    <div class="box aws-text">
+        <p class="lead">Как только модули разъехались по сети, пропадают свойства, которые в монолите были бесплатными. Это не повод не резать систему. Это список вещей, которые архитектура обязана закрыть явно, иначе получится тот же монолит, только с таймаутами.</p>
+        <ul>
+            <li><b>Сеть врёт.</b> Запрос теряется, приходит дважды или приходит через три секунды. Повтор нажатия «Оплатить» не должен списывать деньги второй раз.</li>
+            <li><b>Частичный отказ.</b> Склад ответил, оплата нет. Заказ уже нельзя честно назвать ни оплаченным, ни отменённым, пока не договорились, кто что откатывает.</li>
+            <li><b>Нет общего «сейчас».</b> Каталог уже снял товар с витрины, а заказ ещё минуту показывает старое название. Экраны надо проектировать под догоняющие данные.</li>
+            <li><b>Наблюдать приходится сквозь сервисы.</b> Ошибка пользователя размазана по шлюзу, заказу, брокеру и оплате. Без общего номера следа это четыре несвязанных лога.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>6. Связанность</h2>
+    <div class="box aws-text">
+        <p class="lead">Связанность (coupling, в части учебников — зацепление) описывает, насколько одна часть системы вынуждена знать и ждать другую. Высокая связанность значит: правка в оплате заставляет пересобирать заказы, а простой склада роняет кнопку «Купить».</p>
+        <p>Связность, о которой следующий блок, смотрит внутрь одной части. Связанность смотрит на шов между частями. Цель шва — чтобы по нему ходило мало знаний: идентификатор, факт «заказ создан», сумма. Цель не в том, чтобы сервисы друг о друге не слышали. Они слышат, но через узкий контракт, а не через чужие таблицы и чужие внутренние функции.</p>
+        <div class="flow">
+            <div class="n n-bad">тесный шов<small>чужая таблица, общий релиз</small></div>
+            <div class="a">→</div>
+            <div class="n n-muted">данные<small>только нужные поля</small></div>
+            <div class="a">→</div>
+            <div class="n n-ok">сообщение<small>факт, без знания слушателя</small></div>
+        </div>
+        <p class="tiny">Чем правее шов, тем спокойнее независимый релиз. Тем позже вы узнаёте о последствиях: слушатель обработает факт, когда будет готов.</p>
+    </div>
+</section>
+
+<section>
+    <h2>7. Виды связанности</h2>
+    <div class="box aws-text">
+        <p class="lead">Классическая шкала идёт от самой тесной связи к самой свободной. На практике в сервисах чаще всего встречаются общая база, управляющие флаги и обмен целыми «простынями» JSON, хотя читателю нужны два поля.</p>
+        <div class="spectrum">
+            <div class="sp" style="background:#7f1d1d;">содержательная<small>content</small></div>
+            <div class="sp" style="background:#b91c1c;">общая область<small>common</small></div>
+            <div class="sp" style="background:#c2410c;">внешняя<small>external</small></div>
+            <div class="sp" style="background:#d97706;">управляющая<small>control</small></div>
+            <div class="sp" style="background:#65a30d;">по структуре<small>stamp</small></div>
+            <div class="sp" style="background:#059669;">по данным<small>data</small></div>
+            <div class="sp" style="background:#047857;">сообщения<small>message</small></div>
+        </div>
+        <ul>
+            <li><b>Содержательная</b> — один модуль лезет во внутренности другого: приватный метод, чужая таблица, прямой UPDATE остатков из заказа.</li>
+            <li><b>Общая область</b> — общая глобальная память или одна схема базы на всех. Миграция колонки становится общим релизом.</li>
+            <li><b>Управляющая</b> — в запрос кладут флаги вроде <code>mode=refund|capture</code>, и вызывающий диктует внутренние ветки соседнего сервиса.</li>
+            <li><b>По сообщениям</b> — публикуется факт. Издатель не перечисляет подписчиков и не управляет их ветками.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>8. Связанность между сервисами</h2>
+    <div class="box aws-text">
+        <p class="lead">В распределённой системе те же швы выглядят иначе, чем в одном процессе. Сервисы можно разложить по репозиториям и всё равно оставить их одним организмом: они вместе падают, вместе выезжают и вместе мигрируют схему.</p>
+        <ul>
+            <li><b>По времени выполнения.</b> Заказ в том же HTTP-запросе ждёт оплату, оплата ждёт склад. Склад ответил 500 — пользователь видит ошибку целиком, хотя заказ уже мог сохраниться.</li>
+            <li><b>По данным.</b> Два сервиса читают одну таблицу <code>users</code>. Чат добавил колонку, сервис пользователей о ней не знает, отчёт начинает врать.</li>
+            <li><b>По релизу.</b> Новое обязательное поле в событии заставляет выкатывать издателя и всех читателей в одно окно. Контракт перестал быть совместимым.</li>
+            <li><b>По инфраструктуре.</b> Один кластер Postgres и один пул. Тяжёлый отчёт каталога занимает соединения, и оплата тоже стоит в очереди на базу, хотя код у них разный.</li>
+        </ul>
+        <p class="note">Отдельный репозиторий связанность не уменьшает. Её уменьшают свой цикл данных, совместимый контракт и отказ ждать соседа в пользовательском запросе.</p>
+    </div>
+</section>
+
+<section>
+    <h2>9. Связность</h2>
+    <div class="box aws-text">
+        <p class="lead">Связность (cohesion) описывает, насколько элементы внутри одной части относятся к одной задаче. Высокая связность значит: открыв платёжный сервис, вы видите резерв денег, списание и возврат, и не видите рассылку писем и обрезку картинок.</p>
+        <p>Низкая связанность снаружи и высокая связность внутри — пара. Если сервис внутри собран из неродственных дел, его контракт расползается, и соседи начинают зависеть от случайного набора функций. Если сервис узкий, но для каждого чиха ходит в пятерых соседей по синхронной цепочке, связность куплена ценой связанности.</p>
+        <div class="flow">
+            <div class="n n-svc">Оплата<small>резерв, списание, возврат</small></div>
+            <div class="n n-ok">одна причина меняться<small>правила денег</small></div>
+        </div>
+        <p class="tiny">Проверка вопросом: «Какое одно предложение описывает этот сервис?» Если предложений три и они про разные отделы — внутри слабая связность.</p>
+    </div>
+</section>
+
+<section>
+    <h2>10. Виды связности</h2>
+    <div class="box aws-text">
+        <p class="lead">Шкала связности идёт от случайной кучи функций к модулю, который целиком про одну задачу. В сервисах чаще всего ошибаются в сторону логической связности: появляется «сервис всего», потому что так проще найти, куда положить новый эндпоинт.</p>
+        <div class="spectrum">
+            <div class="sp" style="background:#7f1d1d;">случайная</div>
+            <div class="sp" style="background:#b91c1c;">логическая</div>
+            <div class="sp" style="background:#c2410c;">временна́я</div>
+            <div class="sp" style="background:#d97706;">процедурная</div>
+            <div class="sp" style="background:#65a30d;">по данным</div>
+            <div class="sp" style="background:#059669;">последовательная</div>
+            <div class="sp" style="background:#047857;">функциональная</div>
+        </div>
+        <ul>
+            <li><b>Логическая</b> — в одном сервисе «всё полезное»: почта, картинки, платежи, флаги. Меняется по любому поводу и тащит все секреты сразу.</li>
+            <li><b>Временна́я</b> — всё, что делают при старте заказа, свалено вместе, хотя данные принадлежат разным правилам.</li>
+            <li><b>Функциональная</b> — модуль закрывает одну способность целиком. Склад знает остаток и резерв. Он не знает, как устроен эквайринг.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>11. Как проводить границу</h2>
+    <div class="box aws-text">
+        <p class="lead">Сервис вырезают по бизнес-способности и по данным, которые обязаны меняться атомарно. Граница хорошая, если команда может выпустить её, не договариваясь о чужом деплое, и если отказ соседа не требует отката чужих таблиц.</p>
+        <ul>
+            <li>Имя берут из предметной области: заказы, оплата, склад, уведомления. Имя таблицы — плохой сервис: <code>OrderLinesService</code> почти всегда оказывается тонкой обёрткой над CRUD.</li>
+            <li>Один и тот же слово в разных контекстах — разные модели. Для заказа «клиент» — получатель и адрес. Для учёток «клиент» — логин и хеш пароля. Их не сливают в общий класс <code>User</code> на всю компанию.</li>
+            <li>Если два куска всегда меняются одним коммитом и всегда нужны в одной транзакции, это один сервис. Разрезать их значит тут же изобретать сагу там, где хватало <code>COMMIT</code>.</li>
+            <li>Чужую модель на границе переводят в свою. Заказ хранит <code>user_id</code> и снимок имени, а не тянет объект пользователя со всеми полями учётки.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>12. Одна база на сервис</h2>
+    <div class="box aws-text">
+        <p class="lead">У сервиса своя база, и пароль от неё есть только у него. Сосед читает и меняет эти данные через API или через событие. Так схема остаётся деталью реализации: индекс, переименование колонки и даже смена движка не становятся общим релизом.</p>
+        <div class="flow">
+            <div class="n n-svc">Заказы<small>только он пишет orders</small></div>
+            <div class="n n-db">Postgres A</div>
+            <div class="n n-svc">Оплата<small>только он пишет payments</small></div>
+            <div class="n n-db">Postgres B</div>
+            <div class="n n-svc">Склад<small>только он пишет stock</small></div>
+            <div class="n n-db">Postgres C</div>
+        </div>
+        <ul>
+            <li>Внутри сервиса по-прежнему обычная транзакция. Заказ и его строки коммитятся вместе. Атомарность кончается на границе базы.</li>
+            <li>Движки могут различаться. Заказам нужен Postgres. Присутствию в чате может хватить Redis. Это следствие владения, а не требование «у каждого свой вендор».</li>
+            <li>Копия чужих данных допустима, если понятно, кто хозяин. Хозяин один. Копия — читаемая проекция и может отставать.</li>
+        </ul>
+        <p class="note"><b>Учебный чат.</b> user-сервис хранит пароли. chat-сервис хранит комнаты и сообщения. После регистрации user публикует <code>user.registered</code>, чат пишет локальную строку профиля. Чат не ходит SELECT-ом в чужую базу пользователей.</p>
+    </div>
+</section>
+
+<section>
+    <h2>13. Общая база</h2>
+    <div class="box aws-text">
+        <p class="lead">Общая база — самый частый способ получить распределённый монолит. Процессы уже разные, репозитории разные, а данные общие. Любая миграция и любой тяжёлый запрос снова связывают всех.</p>
+        <svg class="pic" viewBox="0 0 1040 200" role="img">
+            <rect x="40" y="20" width="150" height="48" rx="8" fill="#0f766e"/><text x="115" y="50" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">заказы</text>
+            <rect x="230" y="20" width="150" height="48" rx="8" fill="#0f766e"/><text x="305" y="50" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">оплата</text>
+            <rect x="420" y="20" width="150" height="48" rx="8" fill="#0f766e"/><text x="495" y="50" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">каталог</text>
+            <path d="M115 68 L115 100 L305 100 L305 68" stroke="#b91c1c" stroke-width="3" fill="none"/>
+            <path d="M305 100 L495 100 L495 68" stroke="#b91c1c" stroke-width="3" fill="none"/>
+            <rect x="140" y="112" width="430" height="64" rx="12" fill="#b91c1c"/>
+            <text x="355" y="140" text-anchor="middle" fill="#fff" font-size="18" font-family="sans-serif">одна схема на всех</text>
+            <text x="355" y="162" text-anchor="middle" fill="#fee2e2" font-size="14" font-family="sans-serif">JOIN через границы · общий пул · общая миграция</text>
+            <rect x="680" y="24" width="320" height="152" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+            <text x="840" y="54" text-anchor="middle" fill="#0f172a" font-size="16" font-family="sans-serif" font-weight="700">чем это кончается</text>
+            <text x="840" y="84" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">чужой UPDATE мимо правил сервиса</text>
+            <text x="840" y="108" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">нельзя сменить индекс незаметно</text>
+            <text x="840" y="132" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">нагрузка соседа — ваш простой</text>
+            <text x="840" y="156" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">транзакция снова «общая»</text>
+        </svg>
+        <p class="tiny">Отчёту, которому нужны несколько доменов, собирают отдельную витрину из событий. Его не пускают читателем в боевые таблицы заказов и склада.</p>
+    </div>
+</section>
+
+<section>
+    <h2>14. Кто какими данными владеет</h2>
+    <div class="box aws-text">
+        <p class="lead">На заказе 100500 данные разрезаны по хозяевам. Заказ помнит, что продали и за сколько на момент покупки. Оплата помнит движение денег. Склад помнит остаток. Никто не обновляет чужую таблицу, даже если «так быстрее сделать JOIN».</p>
+        <table class="cmp">
+            <tr><th>Сервис</th><th>Хранит у себя</th><th>Не хранит как хозяин</th></tr>
+            <tr><td>Заказы</td><td>статус, строки, снимок названия и цены, user_id, сумма 2490 ₽</td><td>живой остаток, хеш пароля, текущую цену витрины</td></tr>
+            <tr><td>Оплата</td><td>платёж, резерв, списание, возврат, ссылка на заказ</td><td>состав корзины и адрес доставки</td></tr>
+            <tr><td>Склад</td><td>sku HP-1, доступно, зарезервировано</td><td>сумму чека и платёжный статус</td></tr>
+            <tr><td>Каталог</td><td>карточка товара и актуальная цена витрины</td><td>факт, что у Анны заказ уже подтверждён</td></tr>
+        </table>
+        <p class="note">Снимок названия в заказе обязателен. Каталог завтра переименует товар, а чек Анны должен показывать то имя, которое она покупала. Это осознанная копия, а не «рассинхрон по ошибке».</p>
+    </div>
+</section>
+
+<section>
+    <h2>15. Контракт между сервисами</h2>
+    <div class="box aws-text">
+        <p class="lead">Контракт — это то, на что имеет право опереться сосед. Всё остальное, включая имена таблиц и внутренние статусы, можно менять без созвона. Контракт бывает синхронный (HTTP или gRPC) и асинхронный (схема события).</p>
+        <div class="cols">
+            <div>
+                <ul>
+                    <li>Новое необязательное поле добавить можно. Переименовать или сменить смысл старого — нельзя, пока живы читатели.</li>
+                    <li>Потребитель игнорирует незнакомые поля и не падает. Издатель ещё какое-то время шлёт старую версию.</li>
+                    <li>Ломающее изменение выпускают новым именем: <code>order.placed.v2</code>. Старое событие публикуют, пока все группы не переедут.</li>
+                    <li>У события есть хозяин. События заказов пишет только заказ. Оплата не «подправляет» чужой факт задним числом.</li>
+                </ul>
+            </div>
+            <pre><code>{
+  "event_id": "8f2c-…",
+  "type": "order.placed",
+  "order_id": "100500",
+  "user_id": "42",
+  "amount": 2490,
+  "currency": "RUB"
+}</code></pre>
+        </div>
+        <p class="tiny">Издатель не кладёт в событие половину своей базы «на всякий случай». Лишние поля становятся контрактом, который потом нельзя убрать.</p>
+    </div>
+</section>
+
+<section>
+    <h2>16. API Gateway</h2>
+    <div class="box aws-text">
+        <p class="lead">API Gateway — единственная дверь для внешних клиентов. Браузер и мобильное приложение не знают, на каком хосте живёт заказ, и не держат у себя карту внутренней сети. Шлюз встречает запрос, проверяет, что его можно пустить, и отдаёт нужному сервису.</p>
+        <div class="flow">
+            <div class="n n-client">браузер<small>один origin</small></div>
+            <div class="a">→</div>
+            <div class="n n-gw">Gateway<small>TLS, JWT, лимит, маршрут</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">заказ</div>
+            <div class="n n-svc">каталог</div>
+            <div class="n n-svc">оплата</div>
+        </div>
+        <ul>
+            <li>На шлюзе живут сквозные вещи: TLS, проверка подписи токена, ограничение частоты, корреляционный номер следа, иногда кэш анонимного каталога.</li>
+            <li>Правил заказа на шлюзе нет. Он не решает, можно ли подтвердить 100500. Иначе дверь становится новым монолитом, и каждый домен едет через её релиз.</li>
+            <li>Для конкретного экрана иногда ставят BFF — тонкий сервис под один интерфейс. Он собирает статус заказа и название из каталога. Шлюз при этом только маршрутизирует.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>17. Путь одного запроса</h2>
+    <div class="box aws-text">
+        <p class="lead">Анна открывает заказ. Это чтение данных, хозяин которых — сервис заказов. Шлюз не собирает остатки и не лезет в оплату: экран статуса спрашивает того, кто хранит статус.</p>
+        <div class="seq">
+            <div class="seq-row"><span class="who">Браузер</span><span class="a">→</span><span class="who">Gateway</span><span class="msg">GET /orders/100500, заголовок Authorization</span></div>
+            <div class="seq-row"><span class="who">Gateway</span><span class="a">→</span><span class="who">Gateway</span><span class="msg">проверяет JWT, ставит X-Request-Id, режет анонима</span></div>
+            <div class="seq-row"><span class="who">Gateway</span><span class="a">→</span><span class="who">Заказы</span><span class="msg">проксирует запрос во внутреннюю сеть</span></div>
+            <div class="seq-row"><span class="who">Заказы</span><span class="a">→</span><span class="who">своя БД</span><span class="msg">читает строку 100500: статус PENDING, сумма 2490</span></div>
+            <div class="seq-row"><span class="who">Заказы</span><span class="a">←</span><span class="who">Браузер</span><span class="msg">200 и JSON. Каталог и склад в этом запросе не участвуют</span></div>
+        </div>
+        <p class="note">Если экрану нужно и имя товара «как на витрине сейчас», его спрашивают у каталога вторым запросом или через BFF. Заказ для этого в каталог по своей базе не ходит.</p>
+    </div>
+</section>
+
+<section>
+    <h2>18. Синхронный вызов</h2>
+    <div class="box aws-text">
+        <p class="lead">Синхронный вызов уместен, когда пользователь ждёт ответ и данные лежат в том сервисе, которого спросили. Запрос пришёл, сервис прочитал свою базу, ответил. Соседние домены в этот запрос не входят.</p>
+        <div class="cols">
+            <div class="card good">
+                <h3>Так стоит делать</h3>
+                <ul>
+                    <li>GET своего заказа, карточки, профиля.</li>
+                    <li>Команда, которая только пишет в свою базу и сразу отвечает «принято».</li>
+                    <li>Короткий внутренний запрос за чужим фактом, если без него нельзя ответить и есть жёсткий таймаут.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>REST и gRPC</h3>
+                <p>Снаружи обычно HTTP и JSON: их проще отладить и пропустить через шлюз. Между своими сервисами иногда берут gRPC: схема в protobuf и более дешёвый канал. Способ транспорта границу не лечит. Ждать пятерых соседей вредно и по HTTP, и по gRPC.</p>
+            </div>
+        </div>
+        <p class="tiny">Ответ «202 принято, номер 100500» честнее, чем держать соединение, пока склад, банк и почта не закончат свою работу.</p>
+    </div>
+</section>
+
+<section>
+    <h2>19. Цепочка синхронных вызовов</h2>
+    <div class="box aws-text">
+        <p class="lead">Опасная конструкция выглядит невинно: шлюз зовёт заказ, заказ в том же запросе зовёт оплату, оплата зовёт склад, склад зовёт уведомления. Задержка складывается. Таймаут на каждом звене должен быть короче таймаута вызывающего, иначе пользователь уже ушёл, а хвост цепочки ещё работает.</p>
+        <div class="flow">
+            <div class="n n-client">Анна<small>ждёт 3 с</small></div>
+            <div class="a">→</div>
+            <div class="n n-gw">шлюз<small>таймаут 3 с</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">заказ<small>2.5 с</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">оплата<small>2 с</small></div>
+            <div class="a">→</div>
+            <div class="n n-bad">склад<small>лежит</small></div>
+        </div>
+        <ul>
+            <li>Склад вернул ошибку. Оплата уже могла зарезервировать деньги, заказ уже мог записать строку. Откатить это одним исключением в шлюзе нельзя: базы разные.</li>
+            <li>Анна нажимает кнопку ещё раз. Без идемпотентного ключа резерв создаётся второй раз.</li>
+            <li>Пул потоков заказа забит ожиданием склада. Каталог, даже если он в другом сервисе, ни при чём, а вот все ручки самого заказа начинают отвечать медленно.</li>
+            <li>Такую цепочку разрывают: пользовательский запрос заканчивается на своей базе, дальше работа идёт сообщениями.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>20. Зачем брокер</h2>
+    <div class="box aws-text">
+        <p class="lead">Брокер принимает сообщение, хранит его, пока потребитель не подтвердит обработку, и тем самым развязывает отправителя и получателя по времени. Заказ уже ответил Анне. Оплата разберёт команду, когда у неё есть свободный воркер, а не пока висит её HTTP-сокет.</p>
+        <div class="flow">
+            <div class="n n-svc">заказ<small>записал факт</small></div>
+            <div class="a">→</div>
+            <div class="n n-kafka">брокер<small>сообщение ждёт</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">оплата<small>когда готова</small></div>
+        </div>
+        <ul>
+            <li><b>Пик.</b> Тысяча заказов в минуту оседает в брокере. Оплата разбирает их с той скоростью, с какой живёт банк, и не обязана иметь тысячу потоков в ту же секунду.</li>
+            <li><b>Повтор.</b> Воркер умер до подтверждения. Брокер отдаст сообщение снова. Поэтому обработка обязана быть идемпотентной.</li>
+            <li><b>Несколько дел с одного факта.</b> «Заказ создан» нужен складу, саге и аналитике. Отправитель публикует один раз и не ведёт список рассылки у себя в коде.</li>
+        </ul>
+        <p class="note">Правило выбора: пользователь ждёт и данные свои — синхронно. Сосед должен сделать свою работу, и ждать её в этом запросе не нужно — сообщение. Несколько доменов должны согласиться, и любой может отказать — сага поверх сообщений.</p>
+    </div>
+</section>
+
+<section>
+    <h2>21. Команда и событие</h2>
+    <div class="box aws-text">
+        <p class="lead">В шину кладут две разные вещи, и их полезно не смешивать. Команда просит конкретный сервис сделать работу. Событие сообщает факт, который уже случился. У факта прошедшее время и нет адресата. У команды есть адресат и ещё нет результата.</p>
+        <div class="cols">
+            <div class="card">
+                <h3>Команда</h3>
+                <p><code>payment.reserve</code> для заказа 100500 на 2490 ₽. Её выполняет оплата. Отправитель имеет право ждать результат: получилось или нет. Повтор команды с тем же ключом не создаёт второй резерв.</p>
+            </div>
+            <div class="card good">
+                <h3>Событие</h3>
+                <p><code>payment.authorized</code> — деньги уже зарезервированы. Оплата не знает, кто слушает. Склад, сага и витрина аналитики читают факт независимо. Отменить факт нельзя, можно опубликовать новый факт.</p>
+            </div>
+        </div>
+        <p class="note">Хорошее деление на практике: факты (события) пишут в журнал Kafka, а поручения (команды) кладут в очереди RabbitMQ. Один брокер тоже умеет оба жанра. Разделение по ролям важнее, чем логотип на коробке.</p>
+    </div>
+</section>
+
+<section>
+    <h2>22. RabbitMQ: обменник и очереди</h2>
+    <div class="box aws-text">
+        <p class="lead">В RabbitMQ отправитель не кладёт сообщение «в очередь получателя». Он публикует его в обменник вместе с ключом маршрута. Обменник по привязкам раскладывает копии по очередям. Очередь уже принадлежит потребителям: одно сообщение из очереди забирает один воркер.</p>
+        <svg class="pic" viewBox="0 0 1040 210" role="img">
+            <rect x="16" y="78" width="120" height="50" rx="10" fill="#0f766e"/>
+            <text x="76" y="108" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">заказ</text>
+            <path d="M136 103 H168" stroke="#94a3b8" stroke-width="4"/>
+            <polygon points="248,46 326,103 248,160 170,103" fill="#c2410c"/>
+            <text x="248" y="100" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">exchange</text>
+            <text x="248" y="118" text-anchor="middle" fill="#ffedd5" font-size="12" font-family="sans-serif">topic</text>
+            <path d="M326 88 C370 88 390 36 470 36" fill="none" stroke="#c2410c" stroke-width="3"/>
+            <path d="M326 103 H470" stroke="#c2410c" stroke-width="3"/>
+            <rect x="470" y="12" width="210" height="44" rx="8" fill="#9a3412"/><text x="575" y="40" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">queue payment.reserve</text>
+            <rect x="470" y="80" width="210" height="44" rx="8" fill="#9a3412"/><text x="575" y="108" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">queue email.send</text>
+            <path d="M680 34 H760" stroke="#0f766e" stroke-width="3"/>
+            <path d="M680 102 H760" stroke="#0f766e" stroke-width="3"/>
+            <rect x="760" y="12" width="230" height="44" rx="8" fill="#0f766e"/><text x="875" y="40" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">воркеры оплаты, ack</text>
+            <rect x="760" y="78" width="230" height="44" rx="8" fill="#0f766e"/><text x="875" y="106" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">воркеры почты, ack</text>
+            <path d="M990 34 H1024 V166 H990" fill="none" stroke="#7f1d1d" stroke-width="2" stroke-dasharray="5 4"/>
+            <rect x="700" y="148" width="290" height="44" rx="8" fill="#7f1d1d"/><text x="845" y="176" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">DLQ · после N отказов</text>
+        </svg>
+        <p class="tiny">Пока воркер не прислал ack, сообщение считается невыполненным. Умер процесс — сообщение вернётся в очередь. Prefetch ограничивает, сколько неподтверждённых сообщений висит на одном воркере.</p>
+    </div>
+</section>
+
+<section>
+    <h2>23. RabbitMQ на заказе</h2>
+    <div class="box aws-text">
+        <p class="lead">Команды магазина идут через topic-обменник <code>commands</code>. Ключ маршрута — имя поручения. Очередь оплачивает конкурирующие воркеры: сообщение достанется одному свободному, не всем сразу. Письмо уходит отдельной очередью и не блокирует списание денег.</p>
+        <table class="cmp">
+            <tr><th>Ключ</th><th>Очередь</th><th>Кто делает</th><th>Смысл</th></tr>
+            <tr><td><code>payment.reserve</code></td><td>payment.reserve</td><td>один из воркеров оплаты</td><td>зарезервировать 2490 ₽ по заказу 100500</td></tr>
+            <tr><td><code>payment.release</code></td><td>payment.release</td><td>воркер оплаты</td><td>отпустить резерв, если склад отказал</td></tr>
+            <tr><td><code>inventory.reserve</code></td><td>inventory.reserve</td><td>воркер склада</td><td>удержать единицу HP-1</td></tr>
+            <tr><td><code>email.send</code></td><td>email.send</td><td>воркер почты</td><td>написать Анне, чем кончился заказ</td></tr>
+        </table>
+        <p class="note">Обменник типа fanout раздал бы копию каждому подписчику. Для команды это вредно: два воркера оплаты списали бы деньги дважды. Fanout уместен, когда одно и то же уведомление действительно нужно нескольким независимым очередям. Для фактов с независимыми читателями обычно удобнее журнал Kafka.</p>
+    </div>
+</section>
+
+<section>
+    <h2>24. Kafka: журнал</h2>
+    <div class="box aws-text">
+        <p class="lead">Kafka хранит не очередь «прочитал — удалили», а журнал. Сообщение дописывается в конец партиции и остаётся там, пока не истечёт срок хранения. Читатель помнит свой offset — номер следующего сообщения. Повторно прочитать вчерашний день можно, сдвинув offset, а не попросив отправителя прислать всё ещё раз.</p>
+        <svg class="pic" viewBox="0 0 1040 200" role="img">
+            <text x="20" y="28" fill="#1e3a8a" font-size="16" font-family="sans-serif" font-weight="700">топик order.events, ключ = order_id</text>
+            <text x="20" y="78" fill="#334155" font-size="14" font-family="sans-serif">партиция 0</text>
+            <rect x="140" y="52" width="110" height="40" rx="6" fill="#1d4ed8"/><text x="195" y="77" text-anchor="middle" fill="#fff" font-size="13" font-family="sans-serif">0 placed</text>
+            <rect x="258" y="52" width="130" height="40" rx="6" fill="#1d4ed8"/><text x="323" y="77" text-anchor="middle" fill="#fff" font-size="13" font-family="sans-serif">1 authorized</text>
+            <rect x="396" y="52" width="120" height="40" rx="6" fill="#1d4ed8"/><text x="456" y="77" text-anchor="middle" fill="#fff" font-size="13" font-family="sans-serif">2 reserved</text>
+            <rect x="524" y="52" width="130" height="40" rx="6" fill="#93c5fd"/><text x="589" y="77" text-anchor="middle" fill="#1e3a8a" font-size="13" font-family="sans-serif">3 ещё нет</text>
+            <polygon points="530,96 516,112 544,112" fill="#b45309"/>
+            <text x="556" y="126" fill="#b45309" font-size="13" font-family="sans-serif">offset группы saga</text>
+            <text x="20" y="156" fill="#334155" font-size="14" font-family="sans-serif">партиция 1</text>
+            <rect x="140" y="132" width="150" height="40" rx="6" fill="#1e40af"/><text x="215" y="157" text-anchor="middle" fill="#fff" font-size="13" font-family="sans-serif">другие заказы</text>
+            <text x="720" y="90" fill="#334155" font-size="15" font-family="sans-serif">ключ 100500 всегда</text>
+            <text x="720" y="112" fill="#334155" font-size="15" font-family="sans-serif">попадает в одну</text>
+            <text x="720" y="134" fill="#334155" font-size="15" font-family="sans-serif">партицию: порядок</text>
+            <text x="720" y="156" fill="#334155" font-size="15" font-family="sans-serif">событий заказа сохранён</text>
+        </svg>
+        <p class="tiny">Порядок есть внутри партиции, не на весь топик. Поэтому ключом берут <code>order_id</code>: все факты одного заказа идут друг за другом, а разные заказы обрабатываются параллельно.</p>
+    </div>
+</section>
+
+<section>
+    <h2>25. Группы потребителей и повтор</h2>
+    <div class="box aws-text">
+        <p class="lead">Группа потребителей делит партиции между собой: каждую партицию читает один участник группы. Вторая группа читает тот же топик с начала своего offset и первой не мешает. Аналитика может отставать на час, сага — на секунду. Журнал один.</p>
+        <div class="flow">
+            <div class="n n-kafka">order.events<small>журнал, хранение 7 дней</small></div>
+        </div>
+        <div class="cols-3">
+            <div class="card">
+                <h3>группа saga</h3>
+                <p>Ведёт заказ к подтверждению или отмене. Отставание этой группы — это задержка денег и остатков. Её видно как consumer lag.</p>
+            </div>
+            <div class="card">
+                <h3>группа billing-view</h3>
+                <p>Собирает свою витрину выплат. Если она на час остановилась, заказный путь не ждёт. Догнать можно с последнего offset.</p>
+            </div>
+            <div class="card">
+                <h3>группа analytics</h3>
+                <p>Считает воронку. Ей можно сбросить offset на вчера и перечитать день, не трогая боевую оплату.</p>
+            </div>
+        </div>
+        <p class="note">Повторная доставка всё равно возможна: процесс успел записать эффект и не успел закоммитить offset. Группа — не замена идемпотентности. Хранение журнала — не замена хозяина данных: источник истины по заказу по-прежнему база заказов, журнал — лента фактов.</p>
+    </div>
+</section>
+
+<section>
+    <h2>26. RabbitMQ и Kafka рядом</h2>
+    <div class="box aws-text">
+        <p class="lead">Оба брокера перевозят сообщения. Расходятся они в том, кто умный и что происходит с сообщением после чтения. RabbitMQ силён как раздатчик работы. Kafka сильна как сохраняемая лента фактов, которую читают разные независимые группы и которую можно перечитать.</p>
+        <table class="cmp">
+            <tr><th></th><th>RabbitMQ</th><th>Kafka</th></tr>
+            <tr><td>Модель</td><td>обменник и очереди</td><td>журнал топика, партиции</td></tr>
+            <tr><td>После успеха</td><td>ack, сообщение уходит из очереди</td><td>остаётся до конца срока хранения</td></tr>
+            <tr><td>Кто конкурирует</td><td>воркеры одной очереди</td><td>участники одной группы</td></tr>
+            <tr><td>Независимые читатели</td><td>отдельная очередь на каждого, копия сообщения</td><td>отдельная группа, тот же журнал</td></tr>
+            <tr><td>Повтор истории</td><td>сообщения уже нет, нужен свой архив</td><td>сдвиг offset назад</td></tr>
+            <tr><td>Порядок</td><td>в очереди, пока один потребитель</td><td>внутри партиции, по ключу</td></tr>
+            <tr><td>Ядовитое сообщение</td><td>dead-letter exchange после N отказов</td><td>отдельный топик, который пишет приложение</td></tr>
+            <tr><td>На заказе</td><td>команды: резерв, возврат, письмо</td><td>факты: placed, authorized, reserved</td></tr>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>27. Зачем нужна сага</h2>
+    <div class="box aws-text">
+        <p class="lead">В монолите заказ, резерв денег и резерв остатка сидят в одной транзакции. База либо примет всё, либо сделает ROLLBACK. Между сервисами такой кнопки нет: у каждого своя база, и двухфазный коммит по сети держит блокировки сразу в нескольких системах. На отказе координатора они зависают. Поэтому его почти не используют.</p>
+        <p>Сага заменяет одну большую транзакцию цепочкой локальных. Каждый сервис коммитит свой шаг у себя. Если следующий шаг невозможен, выполняются компенсирующие операции: новые бизнес-действия, которые гасят эффект предыдущих. Деньги, которые уже зарезервировали, отпускают отдельной командой. Это не «отмена SQL задним числом».</p>
+        <div class="flow">
+            <div class="n n-ok">заказ PENDING<small>своя транзакция</small></div>
+            <div class="a">→</div>
+            <div class="n n-ok">резерв денег<small>своя транзакция</small></div>
+            <div class="a">→</div>
+            <div class="n n-bad">остатка нет<small>компенсация денег</small></div>
+        </div>
+        <p class="tiny">Пока сага не дошла до конца, заказ честно называется незавершённым. Экран показывает «принимаем», а не делает вид, что мир уже согласован.</p>
+    </div>
+</section>
+
+<section>
+    <h2>28. Сага хореографией</h2>
+    <div class="box aws-text">
+        <p class="lead">В хореографии нет дирижёра. Каждый сервис слушает чужие факты и публикует свои. Заказ написал <code>order.placed</code>. Оплата, увидев его, резервирует деньги и пишет <code>payment.authorized</code>. Склад слушает уже оплату. Отказ склада — тоже событие, по которому оплата сама отпускает резерв.</p>
+        <svg class="pic" viewBox="0 0 1040 168" role="img">
+            <rect x="20" y="50" width="150" height="52" rx="10" fill="#0f766e"/><text x="95" y="82" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">заказ</text>
+            <rect x="310" y="50" width="150" height="52" rx="10" fill="#0f766e"/><text x="385" y="82" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">оплата</text>
+            <rect x="600" y="50" width="150" height="52" rx="10" fill="#0f766e"/><text x="675" y="82" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">склад</text>
+            <rect x="860" y="50" width="160" height="52" rx="10" fill="#0f766e"/><text x="940" y="82" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">почта</text>
+            <text x="230" y="42" text-anchor="middle" fill="#1d4ed8" font-size="13" font-family="sans-serif">order.placed</text>
+            <text x="520" y="42" text-anchor="middle" fill="#1d4ed8" font-size="13" font-family="sans-serif">authorized</text>
+            <text x="790" y="42" text-anchor="middle" fill="#1d4ed8" font-size="13" font-family="sans-serif">stock.reserved</text>
+            <path d="M175 70 H300" stroke="#1d4ed8" stroke-width="3"/>
+            <path d="M465 70 H595" stroke="#1d4ed8" stroke-width="3"/>
+            <path d="M755 70 H855" stroke="#1d4ed8" stroke-width="3"/>
+            <text x="520" y="145" text-anchor="middle" fill="#b91c1c" font-size="15" font-family="sans-serif">отказ склада → payment.released → order.cancelled, без центрального объекта</text>
+        </svg>
+        <ul>
+            <li>Плюс: нет сервиса, который знает весь сценарий и без которого процесс не живёт.</li>
+            <li>Минус: сценарий размазан по подписчикам. Новый шаг «перед складом проверить антифрод» некуда положить, не трогая нескольких участников.</li>
+            <li>Цикл событий легко не заметить: A слушает B, B слушает C, C снова будит A.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>29. Сага оркестрацией</h2>
+    <div class="box aws-text">
+        <p class="lead">Оркестратор — отдельный сервис со своей базой шагов. Он один знает порядок: сначала деньги, потом остаток, потом подтверждение заказа, в конце письмо. Остальные сервисы не знают соседей по сценарию. Они умеют выполнить команду и опубликовать факт о себе.</p>
+        <div class="flow">
+            <div class="n n-saga">сага<small>шаг и решение</small></div>
+        </div>
+        <div class="flow" style="margin-top:6px;">
+            <div class="n n-rabbit">payment.reserve</div>
+            <div class="n n-rabbit">inventory.reserve</div>
+            <div class="n n-rabbit">order.confirm</div>
+            <div class="n n-rabbit">email.send</div>
+        </div>
+        <ul>
+            <li>Состояние саги пишется у неё: «по заказу 100500 деньги зарезервированы, остаток ещё нет». Перезапуск процесса продолжается с записанного шага, а не с нуля вслепую.</li>
+            <li>Оркестратор может стать местом, куда стекаются все сценарии компании. Тогда его режут по процессам: сага заказа отдельно от саги возврата.</li>
+            <li>Он не забирает себе чужие таблицы. Он хранит ход процесса и идентификаторы, а деньги по-прежнему лежат в оплате.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>30. Сага заказа по шагам</h2>
+    <div class="box aws-text">
+        <p class="lead">Ниже оркестрация заказа 100500, счастливый путь. Каждый пункт — локальный коммит своего сервиса. Между пунктами лежат сообщение и подтверждение. Общего ROLLBACK нет ни на одном шаге.</p>
+        <ol class="steps">
+            <li>Заказ пишет строку PENDING и событие <code>order.placed</code>. Анне уже отвечают 202 и номер.</li>
+            <li>Сага записывает у себя «старт» и публикует в Rabbit команду <code>payment.reserve</code> на 2490 ₽.</li>
+            <li>Оплата резервирует деньги в своей базе и публикует в Kafka <code>payment.authorized</code>.</li>
+            <li>Сага шлёт <code>inventory.reserve</code> на sku HP-1. Склад уменьшает доступный остаток и пишет <code>stock.reserved</code>.</li>
+            <li>Сага шлёт <code>order.confirm</code>. Заказ переводит 100500 в CONFIRMED.</li>
+            <li>Сага шлёт <code>email.send</code>. Почта пишет Анне. Процесс в базе саги помечается завершённым.</li>
+        </ol>
+        <p class="note">Если склад на шаге 4 отвечает «остатка нет», шаги 5 и 6 в эту сторону не идут. Сага публикует <code>payment.release</code>, дожидается факта, что резерв отпущен, и только потом переводит заказ в CANCELLED. Письмо уходит уже про отмену.</p>
+    </div>
+</section>
+
+<section>
+    <h2>31. Компенсации и идемпотентность</h2>
+    <div class="box aws-text">
+        <p class="lead">Компенсация — новое действие со своим смыслом. «Отпустить резерв» отличается от «вернуть уже списанные деньги», и оба отличаются от удаления строки. Компенсация тоже может не пройти с первого раза: банк недоступен. Сага повторяет её. Она не объявляет заказ отменённым, пока компенсация не подтверждена фактом.</p>
+        <div class="cols">
+            <div class="card">
+                <h3>Что повторяется</h3>
+                <ul>
+                    <li>брокер отдал команду второму воркеру, потому что первый умер после записи, но до ack;</li>
+                    <li>Анна дважды нажала «Оплатить», и шлюз прислал два одинаковых запроса;</li>
+                    <li>сага перечитала событие после сброса offset.</li>
+                </ul>
+            </div>
+            <div class="card good">
+                <h3>Как не списать дважды</h3>
+                <p>У команды есть <code>command_id</code>. Оплата в одной транзакции со своей проводкой вставляет этот ключ в таблицу обработанных. Вторая вставка с тем же ключом конфликтует, и сервис возвращает уже записанный результат, не создавая новый резерв.</p>
+            </div>
+        </div>
+        <p class="tiny">Повторять без ограничений нельзя. У команды есть счётчик попыток, пауза с джиттером и потолок, после которого сообщение уезжает в отдельную очередь на разбор человеком.</p>
+    </div>
+</section>
+
+<section>
+    <h2>32. Исходящий ящик</h2>
+    <div class="box aws-text">
+        <p class="lead">Нельзя надёжно сделать два дела сразу: закоммитить строку в Postgres и опубликовать сообщение в брокер. Это разные системы. Упадёт процесс между ними — либо событие ушло, а заказа нет, либо заказ есть, а мир о нём не узнал. Исходящий ящик (transactional outbox) сводит запись факта к одной транзакции своей базы.</p>
+        <div class="seq">
+            <div class="seq-row"><span class="who">Заказ</span><span class="a">1</span><span class="who">своя БД</span><span class="msg">BEGIN; INSERT заказа PENDING; INSERT в outbox; COMMIT</span></div>
+            <div class="seq-row"><span class="who">Relay</span><span class="a">2</span><span class="who">outbox</span><span class="msg">читает ещё не отправленные строки</span></div>
+            <div class="seq-row"><span class="who">Relay</span><span class="a">3</span><span class="who">Kafka</span><span class="msg">публикует order.placed с ключом 100500</span></div>
+            <div class="seq-row"><span class="who">Relay</span><span class="a">4</span><span class="who">outbox</span><span class="msg">помечает строку отправленной</span></div>
+        </div>
+        <p class="note">Если процесс умрёт после публикации и до отметки, брокер получит дубликат. Это нормальная цена схемы. Потребитель гасит дубликат своим ключом, иногда в той же транзакции, что и бизнес-эффект: это входящий ящик, inbox. Публиковать «сначала в брокер, потом COMMIT» или «сначала COMMIT, потом publish в запросе пользователя» обе схемы как раз и ломают.</p>
+    </div>
+</section>
+
+<section>
+    <h2>33. Как части стоят вместе</h2>
+    <div class="box aws-text">
+        <p class="lead">Внешний мир видит только шлюз. Команды пользователя, которым нужен немедленный ответ из своей базы, идут синхронно. Факты дописываются в Kafka из исходящего ящика. Сага читает факты и раздаёт поручения через RabbitMQ. У заказов, каталога, оплаты и склада внизу своя база. У шлюза базы нет: он хранит маршруты, а не заказы.</p>
+        <svg class="pic" viewBox="0 0 1100 300" role="img">
+            <rect x="20" y="8" width="120" height="40" rx="8" fill="#334155"/><text x="80" y="34" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">Браузер</text>
+            <rect x="180" y="8" width="200" height="40" rx="8" fill="#0369a1"/><text x="280" y="34" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">API Gateway</text>
+            <path d="M140 28 H180" stroke="#64748b" stroke-width="3"/>
+            <rect x="430" y="8" width="140" height="40" rx="8" fill="#0f766e"/><text x="500" y="34" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">Заказы</text>
+            <rect x="590" y="8" width="140" height="40" rx="8" fill="#0f766e"/><text x="660" y="34" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">Каталог</text>
+            <rect x="750" y="8" width="140" height="40" rx="8" fill="#0f766e"/><text x="820" y="34" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">Оплата</text>
+            <rect x="910" y="8" width="160" height="40" rx="8" fill="#0f766e"/><text x="990" y="34" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">Склад</text>
+            <path d="M380 28 H430" stroke="#64748b" stroke-width="3"/>
+            <rect x="450" y="62" width="100" height="26" rx="6" fill="#6d28d9"/><text x="500" y="80" text-anchor="middle" fill="#fff" font-size="12" font-family="sans-serif">БД</text>
+            <rect x="610" y="62" width="100" height="26" rx="6" fill="#6d28d9"/><text x="660" y="80" text-anchor="middle" fill="#fff" font-size="12" font-family="sans-serif">БД</text>
+            <rect x="770" y="62" width="100" height="26" rx="6" fill="#6d28d9"/><text x="820" y="80" text-anchor="middle" fill="#fff" font-size="12" font-family="sans-serif">БД</text>
+            <rect x="940" y="62" width="100" height="26" rx="6" fill="#6d28d9"/><text x="990" y="80" text-anchor="middle" fill="#fff" font-size="12" font-family="sans-serif">БД</text>
+            <rect x="40" y="110" width="1020" height="48" rx="10" fill="#1d4ed8"/>
+            <text x="550" y="132" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">Kafka · факты order.placed, payment.authorized, stock.reserved</text>
+            <text x="550" y="150" text-anchor="middle" fill="#dbeafe" font-size="12" font-family="sans-serif">пишутся из outbox, ключ order_id, группы читают независимо</text>
+            <rect x="400" y="174" width="300" height="40" rx="8" fill="#b45309"/><text x="550" y="199" text-anchor="middle" fill="#fff" font-size="15" font-family="sans-serif">Сага заказа · свои шаги в своей БД</text>
+            <rect x="40" y="230" width="1020" height="52" rx="10" fill="#c2410c"/>
+            <text x="550" y="252" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">RabbitMQ · команды reserve, release, confirm, email.send</text>
+            <text x="550" y="272" text-anchor="middle" fill="#ffedd5" font-size="12" font-family="sans-serif">конкурирующие воркеры, ack, после повторов — очередь DLQ</text>
+        </svg>
+    </div>
+</section>
+
+<section>
+    <h2>34. Сценарий: Анна оплачивает заказ</h2>
+    <div class="box aws-text">
+        <p class="lead">Тот же рисунок, пройденный по времени. Важно, где запрос Анны уже закончился, а где система ещё работает без неё.</p>
+        <ol class="steps">
+            <li>Браузер шлёт <code>POST /orders</code> на шлюз. Шлюз проверяет JWT и зовёт только сервис заказов.</li>
+            <li>Заказ в одной транзакции пишет PENDING, строки со снимком «Наушники, 2490 ₽» и строку outbox. Ответ Анне: 202 и номер 100500. Соединение закрыто.</li>
+            <li>Relay публикует <code>order.placed</code> в Kafka. Сага запоминает шаг и кладёт в Rabbit <code>payment.reserve</code>.</li>
+            <li>Воркер оплаты резервирует 2490 ₽ и через свой outbox пишет <code>payment.authorized</code>. Сага так же проводит склад.</li>
+            <li>После <code>stock.reserved</code> сага командует заказу подтвердиться. Статус становится CONFIRMED. Письмо уходит отдельной командой и может опоздать на минуту: заказ от этого не откатывается.</li>
+            <li>Браузер сам опрашивает <code>GET /orders/100500</code> или получает статус по сокету. Хозяин ответа — по-прежнему сервис заказов.</li>
+        </ol>
+        <p class="tiny">Каталог в этих шагах не участвует. Цена на витрине могла измениться после снимка. Чек держит старую. Это и есть владение данными на живом пути.</p>
+    </div>
+</section>
+
+<section>
+    <h2>35. Если склад отказал</h2>
+    <div class="box aws-text">
+        <p class="lead">Наушников уже нет: другой заказ забрал последнюю единицу раньше. Склад публикует <code>stock.rejected</code>. Деньги при этом уже стоят в резерве. Сага не удаляет заказ и не делает вид, что резерва не было.</p>
+        <div class="seq">
+            <div class="seq-row"><span class="who">Склад</span><span class="a">→</span><span class="who">Kafka</span><span class="msg">stock.rejected, причина: нет HP-1</span></div>
+            <div class="seq-row"><span class="who">Сага</span><span class="a">→</span><span class="who">Rabbit</span><span class="msg">команда payment.release с тем же order_id и своим command_id</span></div>
+            <div class="seq-row"><span class="who">Оплата</span><span class="a">→</span><span class="who">своя БД</span><span class="msg">резерв снят, повтор той же команды ничего не меняет</span></div>
+            <div class="seq-row"><span class="who">Оплата</span><span class="a">→</span><span class="who">Kafka</span><span class="msg">payment.released</span></div>
+            <div class="seq-row"><span class="who">Сага</span><span class="a">→</span><span class="who">Заказ</span><span class="msg">команда order.cancel, статус CANCELLED</span></div>
+            <div class="seq-row"><span class="who">Сага</span><span class="a">→</span><span class="who">Почта</span><span class="msg">письмо «не удалось зарезервировать товар, деньги не списаны»</span></div>
+        </div>
+        <p class="note">Пока <code>payment.released</code> не пришёл, заказ остаётся в промежуточном статусе. Показать Анне «отменено» раньше опасно: резерв ещё может висеть. Экран умеет состояние «отменяем».</p>
+    </div>
+</section>
+
+<section>
+    <h2>36. Отказы, повторы, DLQ</h2>
+    <div class="box aws-text">
+        <p class="lead">Сообщение, которое всегда падает, не имеет права заблокировать очередь. Воркер, который бесконечно повторяет вызов мёртвого банка, устраивает отказ своими руками. Поэтому у каждого исходящего вызова есть бюджет времени, а у каждой команды — бюджет попыток.</p>
+        <ul>
+            <li><b>Таймаут</b> стоит на вызове банка, базы и соседа. Он короче, чем таймаут того, кто ждёт вас.</li>
+            <li><b>Повтор</b> делают у идемпотентной команды, с растущей паузой и случайным джиттером, чтобы все воркеры не вернулись в банк в одну миллисекунду.</li>
+            <li><b>Предохранитель</b> (circuit breaker) после череды ошибок перестаёт звонить в мёртвый банк и сразу отвечает отказом. Через паузу пробует один пробный запрос.</li>
+            <li><b>DLQ.</b> После N отказов Rabbit перекладывает сообщение в dead-letter очередь. В Kafka тот же приём — отдельный топик. Сообщение не исчезает и не крутится вечно. Его разбирают: битый JSON, неожиданный статус, ошибка в коде.</li>
+        </ul>
+        <p class="tiny">Пул соединений оплаты отделён от пула каталога. Медленный банк занимает свои воркеры и не съедает витрину. Это та же идея, что своя база: авария соседа локализована.</p>
+    </div>
+</section>
+
+<section>
+    <h2>37. Наблюдаемость</h2>
+    <div class="box aws-text">
+        <p class="lead">Когда путь заказа проходит шлюз, базу, журнал и три воркера, лога одного сервиса мало. Общий номер следа рождается на шлюзе и едет дальше в HTTP-заголовке и в свойствах сообщения. По номеру собирают одну историю из четырёх систем.</p>
+        <div class="flow">
+            <div class="n n-gw">шлюз<small>trace 9af3</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">заказ<small>тот же 9af3</small></div>
+            <div class="a">→</div>
+            <div class="n n-kafka">событие<small>заголовок 9af3</small></div>
+            <div class="a">→</div>
+            <div class="n n-saga">сага<small>лог шага</small></div>
+            <div class="a">→</div>
+            <div class="n n-rabbit">команда<small>заголовок 9af3</small></div>
+        </div>
+        <ul>
+            <li><b>Лог</b> содержит trace id, имя сервиса, order id и итог шага. Без заказа 100500 дежурному нечего искать.</li>
+            <li><b>Метрики.</b> На ручках — частота, ошибки, время. На Kafka — отставание группы saga. На Rabbit — глубина очереди и размер DLQ. Растущая очередь при живых воркерах значит, что обработка медленнее входа.</li>
+            <li><b>След</b> показывает, на каком шаге сага стоит третью минуту: банк, склад или потерянное событие. Это и есть отладка процесса, которого нет в одном процессе.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>38. Антипаттерны</h2>
+    <div class="box aws-text">
+        <p class="lead">Большая часть неудачных систем называется микросервисами, а ведёт себя как монолит с сетевыми задержками. Ниже типичные формы. Их узнают по тому, что независимый релиз и независимый отказ так и не появились.</p>
+        <ul>
+            <li><b>Распределённый монолит.</b> Синхронная цепочка плюс общая база. Падает всё сразу, деплоится всё сразу.</li>
+            <li><b>Сервис на таблицу.</b> Тонкие CRUD без правил. Бизнес-процесс живёт в шлюзе или в «сервисе оркестрации всего», который знает каждую колонку.</li>
+            <li><b>Двойная запись без ящика.</b> Сначала COMMIT, потом publish в обработчике запроса. Рано или поздно остаётся заказ без события или событие без заказа.</li>
+            <li><b>Сага без компенсации и без ключа.</b> Отказ склада оставляет резерв денег. Повтор команды списывает второй раз.</li>
+            <li><b>Общий клиент базы.</b> «Мы только читаем чужие таблицы, писать не будем». Чужая миграция всё равно ваш инцидент, а чужие правила обходятся чтением мимо сервиса.</li>
+            <li><b>Шлюз с бизнес-правилами.</b> Скидка, антифрод и статусная машина заказа заехали в конфиг двери. Домен больше нельзя выпустить отдельно.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>39. Что стоит унести с лекции</h2>
+    <div class="box aws-text">
+        <ul>
+            <li><b>Связанность</b> — шов между частями. Его сужают до контракта. <b>Связность</b> — цельность внутри. Сервис описывается одним предложением про одну способность.</li>
+            <li><b>Одна база на сервис.</b> Хозяин данных один. Копии допустимы как снимки и проекции. Общий Postgres с общими таблицами границу отменяет.</li>
+            <li><b>Шлюз</b> пускает, проверяет токен и маршрутизирует. Он не проводит заказ.</li>
+            <li><b>Синхронно</b> отвечают из своей базы. <b>Событие</b> в Kafka фиксирует факт, который можно перечитать разными группами. <b>Команда</b> в RabbitMQ поручает работу одному из воркеров.</li>
+            <li><b>Сага</b> — цепочка локальных транзакций плюс компенсации. Оркестратор помнит шаг. Хореография обходится фактами, но прячет сценарий.</li>
+            <li><b>Outbox</b> кладёт факт в ту же транзакцию, что и бизнес-строку. <b>Идемпотентный ключ</b> гасит неизбежный повтор. <b>DLQ</b> забирает сообщение, которое не лечится повтором.</li>
+        </ul>
+        <p class="note">Проверка схемы одним вопросом: можно ли выпустить оплату, не выкатывая каталог, и можно ли уронить почту так, чтобы заказ всё равно подтверждался? Если да — границы проведены по делу.</p>
+    </div>
+</section>
+
+<section>
+    <h2>Вопросы</h2>
+    <div class="box aws-text">
+        <p class="lead">Имеет смысл проговорить на заказе 100500 вслух, без слайда: кто хозяин статуса, где кончается запрос Анны, какое сообщение уйдёт первым и что именно произойдёт, если воркер оплаты умрёт после резерва, но до ack.</p>
+        <div class="cols">
+            <div class="card">
+                <h3>Коротко проверить себя</h3>
+                <ul>
+                    <li>Чем связанность отличается от связности?</li>
+                    <li>Почему чек хранит название товара копией?</li>
+                    <li>Почему команду резерва не кладут в fanout?</li>
+                    <li>Зачем саге факт <code>payment.released</code>, если она сама послала команду отпустить деньги?</li>
+                </ul>
+            </div>
+            <div class="card good">
+                <h3>Опорная цепочка</h3>
+                <p>Клиент → шлюз → своя база сервиса → outbox → Kafka (факт) → сага → RabbitMQ (команда) → своя база соседа → компенсация, если сосед отказал.</p>
+                <p style="margin-top:8px;">Почта в этой цепочке последняя и необязательная для согласия денег и остатка.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        width: 1280,
+        height: 820,
+        margin: 0.06,
+        center: true,
+        transition: 'slide'
+    });
+</script>
+</body>
+</html>

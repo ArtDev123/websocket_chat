@@ -34,3 +34,5 @@ docker compose up --build
 ```
 
 > В Compose Postgres снаружи на порту **5433**. Для локального `make run` без Docker оставьте `POSTGRES_PORT=5432` и локальную БД из `scripts/`.
+
+Следующий урок режет этот монолит на user-сервис и chat-сервис, они общаются через RabbitMQ: [docs/split/README.md](docs/split/README.md).
