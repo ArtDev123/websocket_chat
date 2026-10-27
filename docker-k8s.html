@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker, Kubernetes, ECS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/sky.min.css" id="theme">
+    <style>
+        .reveal h1, .reveal h2, .reveal h3 {
+            color: #1e293b;
+            text-transform: none;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .reveal h1 { font-size: 46px; line-height: 1.15; }
+        .reveal h2 { font-size: 30px; margin: 0 0 10px; line-height: 1.2; }
+        .reveal .slides section { text-align: left; padding: 4px 8px 0; }
+        .reveal h1, .reveal h2, .kicker, .title-sub { text-align: center; }
+        .reveal .aws-text { color: #1f2937; font-size: 19px; line-height: 1.36; text-align: left; }
+        .reveal .box {
+            border: 2px solid #0284c7;
+            padding: 12px 16px 14px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+        }
+        .reveal .highlight { color: #b91c1c; font-weight: 700; }
+        .reveal .ok { color: #047857; font-weight: 700; }
+        .reveal ul, .reveal ol { margin: 6px 0 0; display: block; }
+        .reveal li { margin-bottom: 4px; line-height: 1.32; }
+        .kicker { color: #0369a1; font-size: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+        .title-sub { color: #475569; font-size: 22px; margin-top: 12px; }
+        .lead { margin: 0 0 6px; }
+        .note { margin: 8px 0 0; background: #f0f9ff; border-left: 4px solid #0284c7; padding: 7px 12px; border-radius: 0 8px 8px 0; }
+        .flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .n { color: #fff; border-radius: 10px; padding: 8px 10px; font-weight: 700; text-align: center; min-width: 88px; line-height: 1.2; font-size: 15px; box-shadow: 0 3px 0 rgba(15, 23, 42, 0.12); }
+        .n small { display: block; font-weight: 500; opacity: 0.92; font-size: 12px; margin-top: 2px; }
+        .a { color: #334155; font-weight: 800; font-size: 22px; }
+        .n-client { background: #334155; }
+        .n-gw { background: #0369a1; }
+        .n-svc { background: #0f766e; }
+        .n-db { background: #6d28d9; }
+        .n-rabbit { background: #c2410c; }
+        .n-kafka { background: #1d4ed8; }
+        .n-saga { background: #b45309; }
+        .n-bad { background: #b91c1c; }
+        .n-ok { background: #047857; }
+        .n-muted { background: #64748b; }
+        .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+        .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 8px; }
+        .card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 8px 12px; background: #fff; }
+        .card h3 { font-size: 17px; margin: 0 0 4px; text-align: left; }
+        .card p, .card li { font-size: 16px; }
+        .card.bad { border-color: #fecaca; background: #fff7f7; }
+        .card.good { border-color: #a7f3d0; background: #f0fdf4; }
+        table.cmp { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 6px; }
+        table.cmp th, table.cmp td { border-bottom: 1px solid #e2e8f0; padding: 4px 7px; text-align: left; vertical-align: top; }
+        table.cmp th { color: #0f172a; background: #f1f5f9; }
+        .reveal pre { font-size: 14px; line-height: 1.32; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 8px 12px; width: auto; margin: 8px 0 0; box-shadow: none; }
+        .reveal pre code { background: transparent; color: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .qa { display: grid; gap: 7px; }
+        .qa .item { background: #f8fafc; border-radius: 10px; padding: 7px 11px; }
+        .qa .q { margin: 0 0 2px; font-weight: 700; color: #0f172a; }
+        .qa p { margin: 0; }
+        .tiny { font-size: 15px; color: #475569; margin: 6px 0 0; }
+        .pic { display: block; width: 100%; height: auto; margin-top: 6px; }
+    </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<section>
+    <p class="kicker">Лекция</p>
+    <h1>Docker, Kubernetes и ECS</h1>
+    <p class="title-sub">Практики сборки, базовые объекты кластера и три способа собрать систему</p>
+    <div class="flow">
+        <div class="n n-muted">ноутбук<small>Docker Compose</small></div>
+        <div class="a">→</div>
+        <div class="n n-kafka">реестр<small>один digest образа</small></div>
+        <div class="a">→</div>
+        <div class="n n-svc">Kubernetes</div>
+        <div class="n n-saga">AWS ECS</div>
+    </div>
+    <p class="tiny" style="text-align:center;">Стрелки листают слайды. Пример на всех схемах один: API чата, PostgreSQL и RabbitMQ.</p>
+</section>
+
+<section>
+    <h2>1. Карта лекции</h2>
+    <div class="box aws-text">
+        <div class="cols-3">
+            <div class="card">
+                <h3>Docker</h3>
+                <p>Образ, слои, Dockerfile, кэш, пользователь, сигналы, секреты, тома. Затем вопросы, на которые ждут короткий точный ответ.</p>
+            </div>
+            <div class="card">
+                <h3>Kubernetes</h3>
+                <p>Под, Deployment, Service, Ingress, конфигурация, пробы, лимиты, выкатка. База, без которой манифест читается как набор несвязанных YAML.</p>
+            </div>
+            <div class="card">
+                <h3>Как это собирают</h3>
+                <p>Compose на машине разработчика. Kubernetes и ECS как два прод-контура. Общий образ, разное место для базы и разный вход трафика.</p>
+            </div>
+        </div>
+        <p class="note">Оркестратор не чинит плохой образ. Сначала процесс правильно стартует и останавливается в одном контейнере, потом уже появляется несколько копий и балансировка.</p>
+    </div>
+</section>
+
+<section>
+    <h2>2. Что такое контейнер</h2>
+    <div class="box aws-text">
+        <p class="lead">Контейнер — обычный процесс хоста. Ядро у него то же, что у машины. Изоляцию дают namespaces Linux: свой взгляд на процессы, сеть, файловую систему, имя хоста. Потолок по CPU и памяти задают cgroups. Отдельной гостевой операционной системы внутри нет.</p>
+        <div class="cols">
+            <div class="card">
+                <h3>Контейнер</h3>
+                <ul>
+                    <li>Старт за секунды: поднимается процесс, а не ОС.</li>
+                    <li>Образ несёт файлы приложения и библиотеки, ядро берётся с хоста.</li>
+                    <li>Плотность выше: на одном ядре живут десятки процессов.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Виртуальная машина</h3>
+                <ul>
+                    <li>Гипервизор, гостевое ядро, свой диск.</li>
+                    <li>Сильнее изоляция ценой памяти и времени старта.</li>
+                    <li>Уместна, когда нужно чужое ядро или жёсткая граница арендатора.</li>
+                </ul>
+            </div>
+        </div>
+        <p class="note">Образ, собранный под Linux, не запустится на хосте с другим ядром без виртуальной машины. Docker Desktop на macOS как раз прячет маленькую Linux-ВМ, и контейнеры работают уже внутри неё.</p>
+    </div>
+</section>
+
+<section>
+    <h2>3. Образ и контейнер</h2>
+    <div class="box aws-text">
+        <p class="lead">Образ неизменяем. В нём слои файлов и конфигурация запуска: команда, переменные, пользователь, рабочий каталог. Контейнер — запущенный из образа процесс плюс тонкий записываемый слой сверху. Удаление контейнера забирает этот слой. Файлы, которые процесс создал и не положил на том, исчезают вместе с ним.</p>
+        <div class="flow">
+            <div class="n n-kafka">образ<small>слои только для чтения</small></div>
+            <div class="a">+</div>
+            <div class="n n-saga">writable layer<small>живёт вместе с контейнером</small></div>
+            <div class="a">=</div>
+            <div class="n n-svc">контейнер<small>процесс + сеть + слой</small></div>
+        </div>
+        <ul>
+            <li>Из одного образа запускают сколько угодно контейнеров. Записываемые слои у них разные.</li>
+            <li>Контейнер не «сохраняют в образ» штатным путём работы. Новое содержимое получают новой сборкой Dockerfile, а не правкой живого контейнера.</li>
+            <li><code>docker commit</code> существует и почти всегда оставляет систему, которую нельзя воспроизвести.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>4. Слои</h2>
+    <div class="box aws-text">
+        <p class="lead">Каждая инструкция Dockerfile, которая меняет файлы, добавляет слой. Слой адресуется по содержимому. Если слой уже есть локально или в реестре, его не передают заново. Поэтому порядок инструкций и совпадение контекста сборки прямо влияют на время сборки и размер скачивания.</p>
+        <div class="flow">
+            <div class="n n-muted">FROM slim<small>базовый слой</small></div>
+            <div class="a">+</div>
+            <div class="n n-kafka">pip install<small>меняется редко</small></div>
+            <div class="a">+</div>
+            <div class="n n-svc">COPY app<small>меняется часто</small></div>
+        </div>
+        <ul>
+            <li>Удаление файла следующим слоем не уменьшает образ: файл остаётся в предыдущем слое. Чистить кэш пакетов нужно в том же <code>RUN</code>, где пакеты ставились.</li>
+            <li>Историю слоёв видно через <code>docker history</code>. Секрет, попавший в <code>RUN</code>, остаётся в истории, даже если следующий слой удалил файл.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>5. Инструкции, которые путают</h2>
+    <div class="box aws-text">
+        <table class="cmp">
+            <tr><th>Инструкция</th><th>Что делает</th><th>Чего не делает</th></tr>
+            <tr><td><code>FROM</code></td><td>Задаёт базовый образ и стартовый слой</td><td>Не обновляет базу сама. Какая метка указана, та и попадёт в сборку</td></tr>
+            <tr><td><code>RUN</code></td><td>Выполняет команду при сборке и фиксирует новый слой</td><td>Не выполняется при каждом старте контейнера</td></tr>
+            <tr><td><code>COPY</code></td><td>Кладёт файлы из контекста сборки в образ</td><td>Не ходит в произвольный URL. Для URL есть <code>ADD</code>, и его лучше избегать</td></tr>
+            <tr><td><code>ARG</code></td><td>Переменная только на время сборки</td><td>Не попадает в окружение контейнера, пока её явно не записали в <code>ENV</code></td></tr>
+            <tr><td><code>ENV</code></td><td>Переменная и в сборке, и в запущенном контейнере</td><td>Не место для пароля: значение видно в образе и в <code>docker inspect</code></td></tr>
+            <tr><td><code>EXPOSE</code></td><td>Документирует порт в метаданных образа</td><td>Ничего не публикует наружу. Публикация — это <code>-p</code> или <code>ports</code></td></tr>
+            <tr><td><code>USER</code></td><td>Uid и gid процесса контейнера</td><td>Не создаёт пользователя. Сначала <code>useradd</code>, потом <code>USER</code></td></tr>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>6. CMD, ENTRYPOINT и сигнал остановки</h2>
+    <div class="box aws-text">
+        <p class="lead"><code>ENTRYPOINT</code> задаёт исполняемый файл. <code>CMD</code> задаёт аргументы по умолчанию. Аргументы <code>docker run image --port 8080</code> заменяют <code>CMD</code> и дописываются к <code>ENTRYPOINT</code>. Заменить сам исполняемый файл можно флагом <code>--entrypoint</code>.</p>
+        <div class="cols">
+            <div class="card good">
+                <h3>Exec-форма</h3>
+                <p><code>CMD ["uvicorn", "app.main:app"]</code>. Процесс приложения становится PID&nbsp;1. <code>docker stop</code> шлёт ему SIGTERM, ждёт таймаут (по умолчанию 10 секунд) и только потом SIGKILL. Приложение успевает дописать ответ и закрыть соединения.</p>
+            </div>
+            <div class="card bad">
+                <h3>Shell-форма</h3>
+                <p><code>CMD uvicorn app.main:app</code> превращается в <code>/bin/sh -c "..."</code>. PID&nbsp;1 — оболочка. Дочерний процесс сигнал часто не получает и умирает по SIGKILL. В скрипте запуска последней строкой должен быть <code>exec</code>, чтобы приложение заняло место оболочки.</p>
+            </div>
+        </div>
+        <p class="note">Если приложение само не собирает зомби-процессы и не обрабатывает сигналы, перед ним ставят маленький init, например <code>tini</code>. В Kubernetes отдельного init по умолчанию нет: в спецификации контейнера тоже нужна exec-форма команды. Поле <code>shareProcessNamespace</code> только объединяет пространство PID контейнеров одного пода и сигналы за приложение не обрабатывает.</p>
+    </div>
+</section>
+
+<section>
+    <h2>7. Контекст сборки</h2>
+    <div class="box aws-text">
+        <p class="lead">Команда <code>docker build</code> отправляет демону каталог контекста, обычно это <code>.</code>. Демон видит только этот каталог. <code>COPY</code> не умеет выйти наружу через <code>../</code>. Лишние файлы раздувают передачу. Если их захватывает широкий <code>COPY . .</code>, меняется ещё и кэш этого слоя.</p>
+        <div class="cols">
+            <pre><code># .dockerignore
+.git
+.venv
+__pycache__
+.env
+.env.*
+tests
+**/__pycache__
+README.md</code></pre>
+            <div>
+                <ul>
+                    <li><code>.env</code> в контексте опасен дважды: файл может уехать в образ через широкий <code>COPY . .</code>, и любая правка секрета сбрасывает кэш.</li>
+                    <li>Зависимости копируют отдельным шагом, код — следующим. Иначе каждая правка строки исходника заново ставит пакеты.</li>
+                    <li>В <code>.dockerignore</code> держат и локальные артефакты сборки, и документацию, если она не нужна процессу.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>8. Кэш слоёв</h2>
+    <div class="box aws-text">
+        <p class="lead">Кэш инструкции действителен, пока не изменились она сама и все предыдущие слои. Первая изменённая инструкция пересобирает всё, что ниже. Поэтому редко меняющееся стоит выше часто меняющегося.</p>
+        <ol>
+            <li><code>FROM</code> — базовый образ.</li>
+            <li>Постановка системных пакетов.</li>
+            <li><code>COPY requirements.txt</code> и установка зависимостей.</li>
+            <li><code>COPY</code> исходников.</li>
+            <li><code>USER</code> и команда запуска. Они дёшевы, но тоже сбрасывают кэш ниже себя, если меняются.</li>
+        </ol>
+        <p class="note">Кэш пакетного менеджера между сборками сохраняют монтированием BuildKit: <code>RUN --mount=type=cache,target=/root/.cache/pip</code>. Это кэш сборки на машине, а не слой образа. В финальный образ каталог кэша не попадает. Флаг <code>--no-cache</code> у команды build отключает кэш слоёв целиком и нужен, когда проверяют воспроизводимость, а не когда ускоряют обычный цикл.</p>
+    </div>
+</section>
+
+<section>
+    <h2>9. Multi-stage сборка</h2>
+    <div class="box aws-text">
+        <p class="lead">В первой стадии остаются компилятор, заголовки и полный набор инструментов. В финальный образ копируют только виртуальное окружение и код. В проде нет <code>gcc</code> и нет оболочки, если базовый образ это позволяет. Меньше размер, меньше поверхность пакетов с известными дырами.</p>
+        <pre><code>FROM python:3.12-slim AS build
+WORKDIR /app
+RUN python -m venv /opt/venv
+COPY requirements.txt .
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.12-slim
+RUN useradd --create-home --uid 10001 app
+WORKDIR /app
+COPY --from=build /opt/venv /opt/venv
+COPY app ./app
+ENV PATH="/opt/venv/bin:$PATH"
+USER app
+ENTRYPOINT ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]</code></pre>
+    </div>
+</section>
+
+<section>
+    <h2>10. Базовый образ, тег и digest</h2>
+    <div class="box aws-text">
+        <p class="lead">Тег — подвижная метка. Сегодня <code>python:3.12-slim</code> указывает на один digest, через неделю сопровождающие перевесят тег на образ с другими патчами. Digest <code>sha256:…</code> адресует конкретное содержимое. Повторная сборка с тем же digest даёт тот же базовый слой.</p>
+        <ul>
+            <li><span class="highlight"><code>latest</code></span> в проде не говорит, какая версия запущена, и не даёт предсказуемого отката. Откат — это повторный запуск прежнего digest, а не надежда, что тег ещё не переехал.</li>
+            <li>Читаемый тег и digest совмещают: <code>chat-api:1.4.2@sha256:abc…</code>. Человеку видна версия, кластер тянет неизменяемое содержимое.</li>
+            <li>Базу берут минимальную под задачу: <code>slim</code> или distroless. Полноценный дистрибутив с оболочкой и пакетным менеджером нужен для отладки, не для каждой реплики.</li>
+            <li>Обновление базы — отдельное сознательное действие: пересобрать, прогнать тесты, выкатить. Плавающий тег делает это действие случайным.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>11. Пользователь и корневая файловая система</h2>
+    <div class="box aws-text">
+        <p class="lead">Процесс в контейнере по умолчанию — root хостового ядра, ограниченный namespaces. Дыра в приложении с uid&nbsp;0 внутри контейнера опаснее той же дыры от непривилегированного пользователя. Пользователя создают в образе с фиксированным uid и переключаются на него инструкцией <code>USER</code> до запуска.</p>
+        <ul>
+            <li>Каталоги, куда процесс пишет, создают заранее и отдают этому uid. Иначе приложение падает уже после <code>USER</code>, и контейнер выглядит «сломанным без причины».</li>
+            <li>Порт 8080 не требует root. Порты ниже 1024 требуют, поэтому сервис слушает высокий порт, а снаружи его публикует прокси или Service.</li>
+            <li>Флаг <code>--read-only</code> и в Kubernetes поле <code>readOnlyRootFilesystem</code> запрещают запись в слой контейнера. Временным файлам отдают пустой каталог <code>tmpfs</code> или <code>emptyDir</code>.</li>
+            <li>Distroless-образ без оболочки убирает удобный <code>docker exec</code> с <code>sh</code>. Это приемлемая цена, если логи и метрики и так выходят наружу.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>12. Healthcheck, логи и лимиты</h2>
+    <div class="box aws-text">
+        <ul>
+            <li><code>HEALTHCHECK</code> помечает контейнер как <code>healthy</code> или <code>unhealthy</code>. Статус сам по себе процесс не перезапускает. Политика <code>restart</code> срабатывает на завершение процесса, а не на проваленную проверку. Проверку использует Compose с условием <code>service_healthy</code> и оркестраторы, у которых она подключена отдельно.</li>
+            <li>Kubernetes инструкцию <code>HEALTHCHECK</code> из образа игнорирует. Живость и готовность описывают пробами в спецификации пода.</li>
+            <li>Логи пишут в stdout и stderr. Демон и оркестратор забирают этот поток. Файл внутри контейнера пропадает вместе со слоем и не попадает в общую систему логов.</li>
+            <li>Без <code>--memory</code> и <code>--cpus</code> один контейнер может забрать машину. Лимит памяти, который процесс превысил, заканчивается убийством процесса ядром.</li>
+        </ul>
+        <p class="note">Проверка здоровья бьёт в локальный эндпоинт процесса, например <code>/health</code>, и отвечает быстро. Проверка, которая ходит в соседнюю базу, смешивает «процесс жив» и «зависимость доступна». На оркестраторе из этого получается лавина перезапусков.</p>
+    </div>
+</section>
+
+<section>
+    <h2>13. Секреты</h2>
+    <div class="box aws-text">
+        <p class="lead">Пароль, ключ облака и приватный токен в образ не кладут. Слой и история сборки хранят то, что команда <code>RUN</code> видела в своём тексте и в скопированных файлах. Удаление файла следующим слоем секрет из истории не вычищает.</p>
+        <ul>
+            <li>Аргумент сборки <code>ARG AWS_SECRET_ACCESS_KEY</code> удобен и опасен: значение остаётся в метаданных сборки. Для секрета на время одной команды есть mount BuildKit: <code>RUN --mount=type=secret</code>. В слой он не записывается.</li>
+            <li>В рантайме секрет приходит из окружения, которое задаёт оркестратор, или из файла, смонтированного в память. Файл удобнее environment, когда нужно обновить значение без обязательной пересборки образа и когда хочется меньше шансов увидеть секрет в списке процессов.</li>
+            <li><code>.env</code> на машине разработчика в образ не копируют. В <code>.dockerignore</code> он перечислен явно, даже если команда «и так помнит».</li>
+            <li>Реестр тоже часть границы: образ с секретом, уже отправленный в реестр, придётся считать скомпрометированным. Вычищение из git секрет из реестра не забирает.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>14. Тома</h2>
+    <div class="box aws-text">
+        <div class="cols-3">
+            <div class="card">
+                <h3>Bind mount</h3>
+                <p>Каталог хоста виден в контейнере как есть. На ноутбуке так подключают исходники, чтобы править код без пересборки. В проде так получают зависимость от файлов конкретной машины.</p>
+            </div>
+            <div class="card">
+                <h3>Named volume</h3>
+                <p>Docker сам хранит данные в своём каталоге. Тому можно дать имя <code>pgdata</code> и пережить пересоздание контейнера. Это нормальный способ для локальной базы.</p>
+            </div>
+            <div class="card">
+                <h3>tmpfs</h3>
+                <p>Каталог в памяти. Подходит для временных файлов и для секрета, который не должен лежать на диске. После остановки контейнера каталог пуст.</p>
+            </div>
+        </div>
+        <p class="note">Состояние в записываемом слое контейнера — потеря данных при любом пересоздании. База, очередь с персистентностью и загруженные пользователем файлы живут на томе или во внешнем хранилище, а не в слое поверх образа.</p>
+    </div>
+</section>
+
+<section>
+    <h2>15. Сеть одного демона Docker</h2>
+    <div class="box aws-text">
+        <ul>
+            <li>Пользовательская bridge-сеть даёт контейнерам DNS-имена друг друга. Имя сервиса в Compose и есть такое имя: <code>postgres</code>, <code>rabbitmq</code>. На default bridge автоматического DNS по имени нет.</li>
+            <li>Публикация <code>127.0.0.1:8080:8080</code> открывает порт только на локальной машине. Запись <code>8080:8080</code> слушает на всех интерфейсах хоста.</li>
+            <li>Сеть <code>host</code> убирает отдельный сетевой namespace. Порты процесса сразу порты машины. Изоляции меньше, и на Docker Desktop для macOS это работает иначе, чем на Linux.</li>
+            <li>Контейнеры в разных пользовательских сетях друг друга по имени не видят. Это нормальный способ отделить проект от проекта на одной машине.</li>
+        </ul>
+        <p class="tiny">Дальше этой модели один демон не идёт. Несколько машин, общий виртуальный IP и самолечение числа копий — работа оркестратора, а не флага <code>--network</code>.</p>
+    </div>
+</section>
+
+<section>
+    <h2>16. Сборка, которую не стыдно отдать в прод</h2>
+    <div class="box aws-text">
+        <ul>
+            <li>Один процесс приложения на контейнер, exec-форма <code>ENTRYPOINT</code>, обработка SIGTERM, лог в stdout.</li>
+            <li>Фиксированный непривилегированный uid, запись только в заранее созданные каталоги.</li>
+            <li>Multi-stage, зависимости отдельным слоем, <code>.dockerignore</code>, очистка кэша пакетного менеджера в том же <code>RUN</code>.</li>
+            <li>Базовый образ по digest, свой тег версии тоже по digest. Тега <code>latest</code> в манифесте продакшена нет.</li>
+            <li>Секретов в слоях нет. Конфигурация окружения приходит при запуске.</li>
+            <li>Проверка <code>/health</code> отвечает про сам процесс и укладывается в короткий таймаут.</li>
+            <li>Образ, собранный в CI, — тот же образ, который запускают везде. На сервере прод заново не собирают.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>17. Вопросы. Образ и процесс</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Чем контейнер отличается от виртуальной машины?</p>
+                <p>Контейнер — процесс на общем ядре, изолированный namespaces и ограниченный cgroups. Виртуальная машина включает гостевое ядро. Поэтому контейнер быстрее стартует и плотнее садится на машину, а граница изоляции у него слабее.</p>
+            </div>
+            <div class="item">
+                <p class="q">Чем образ отличается от контейнера?</p>
+                <p>Образ неизменяем: слои и параметры запуска. Контейнер — процесс из этого образа и записываемый слой. Образ делят между запусками, слой у каждого контейнера свой и пропадает при удалении контейнера.</p>
+            </div>
+            <div class="item">
+                <p class="q">Публикует ли EXPOSE порт?</p>
+                <p>Нет. Инструкция записывает порт в метаданные. Наружу порт открывает публикация при запуске: <code>-p</code> у демона или поле <code>ports</code> в Compose. В Kubernetes наружу смотрит Service, а <code>containerPort</code> тоже в первую очередь описывает порт процесса.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>18. Вопросы. Сборка</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Почему правка одной строки кода заново скачивает все зависимости?</p>
+                <p>Кэш инвалидируется с первой изменённой инструкции и ниже. Если <code>COPY . .</code> стоит до <code>pip install</code>, любое изменение исходника меняет слой копирования, и установка пакетов выполняется снова. Зависимости копируют и ставят раньше кода.</p>
+            </div>
+            <div class="item">
+                <p class="q">Зачем multi-stage, если можно поставить пакеты и удалить компилятор?</p>
+                <p>Удаление в следующем слое не выкидывает файлы из предыдущего. Компилятор останется в размере образа. Отдельная стадия сборки позволяет перенести в финал только артефакт, например каталог виртуального окружения.</p>
+            </div>
+            <div class="item">
+                <p class="q">Чем тег отличается от digest?</p>
+                <p>Тег можно перевесить на другое содержимое. Digest вычисляется из содержимого и не переезжает. В продакшене запускают digest, тег оставляют человеку как имя версии.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>19. Вопросы. Запуск и секреты</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Почему контейнер не успевает завершиться чисто и получает SIGKILL?</p>
+                <p>Чаще всего PID&nbsp;1 — оболочка из shell-формы CMD. SIGTERM от <code>docker stop</code> приходит ей, приложение его не обрабатывает, через таймаут ядро шлёт SIGKILL. Нужна exec-форма или <code>exec</code> в конце скрипта.</p>
+            </div>
+            <div class="item">
+                <p class="q">HEALTHCHECK с <code>--restart=always</code> перезапустит зависший процесс?</p>
+                <p>Нет, если процесс при этом не завершился. Проверка только меняет статус контейнера. Перезапуск по restart-политике связан с кодом выхода процесса. Кто именно реагирует на unhealthy, зависит от оркестратора, и это уже отдельная настройка.</p>
+            </div>
+            <div class="item">
+                <p class="q">Куда деть пароль базы при сборке и при запуске?</p>
+                <p>В слой образа и в <code>ARG</code> его не кладут. На время команды сборки, если секрет правда нужен сборке, используют mount типа secret. В рантайме пароль приходит из секрет-хранилища оркестратора переменной или файлом. <code>.env</code> разработчика в контекст сборки не входит.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>20. Зачем оркестратор</h2>
+    <div class="box aws-text">
+        <p class="lead">Один демон Docker на ноутбуке умеет запустить контейнер и поднять его снова, если процесс умер, пока жива эта машина. Он не выбирает узел из десятка, не держит заданное число копий после потери машины и не даёт одному имени стабильный вход на весь парк.</p>
+        <ul>
+            <li>Желаемое состояние: «API чата запущен в трёх копиях и принимает трафик с балансировщика». Оркестратор сравнивает факт с желаемым и создаёт недостающее.</li>
+            <li>Выкатка без простоя: новая версия поднимается рядом, старая уходит после готовности новой.</li>
+            <li>Размещение: есть запрос CPU и памяти, есть узлы, планировщик выбирает, куда сесть.</li>
+            <li>Сеть сервиса: одно DNS-имя на множество копий и убор нездоровых копий из балансировки.</li>
+        </ul>
+        <p class="note">Дальше два конкретных оркестратора: Kubernetes и ECS. Compose остаётся инструментом одной машины, в первую очередь машины разработчика. Docker Swarm в новых системах обычно не выбирают: его нишу заняли Kubernetes и облачные сервисы.</p>
+    </div>
+</section>
+
+<section>
+    <h2>21. Из чего состоит кластер Kubernetes</h2>
+    <div class="box aws-text">
+        <p class="lead">Кластер — control plane и рабочие узлы. Control plane принимает желаемое состояние и приводит факт к этому состоянию. Узлы исполняют поды. В управляемом кластере (EKS, GKE) control plane принадлежит платформе, узлы остаются вашей зоной ответственности, если это не бессерверный режим узлов.</p>
+        <div class="cols">
+            <div class="card">
+                <h3>Control plane</h3>
+                <ul>
+                    <li><b>API server</b> — единственная дверь. <code>kubectl</code> и контроллеры ходят только сюда.</li>
+                    <li><b>etcd</b> — хранилище состояния кластера.</li>
+                    <li><b>scheduler</b> — выбирает узел для пода, которому узел ещё не назначен.</li>
+                    <li><b>controller manager</b> — набор циклов: Deployment, ReplicaSet, узлы, и так далее.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Узел</h3>
+                <ul>
+                    <li><b>kubelet</b> получает спецификацию пода и запускает контейнеры через container runtime.</li>
+                    <li><b>kube-proxy</b> или замена вроде eBPF программирует балансировку Service.</li>
+                    <li>Контейнерный рантайм, например containerd. Docker Engine на узле для этого не обязателен.</li>
+                </ul>
+            </div>
+        </div>
+        <p class="tiny">Цикл называется reconcile: контроллер читает объект, смотрит факт и делает один шаг к желаемому. Команды «создай контейнер навсегда» в этой модели нет. Есть объект, за которым контроллер следит постоянно.</p>
+    </div>
+</section>
+
+<section>
+    <h2>22. Pod</h2>
+    <div class="box aws-text">
+        <p class="lead">Под — минимальная единица запуска. Внутри один или несколько контейнеров. У них общий сетевой namespace, поэтому они делят один IP и общаются по <code>localhost</code>. Тома пода видны тем контейнерам, которым их смонтировали. Планировщик размещает под целиком на одном узле: разнести контейнеры одного пода по разным машинам нельзя.</p>
+        <div class="flow">
+            <div class="n n-svc">контейнер api<small>:8080</small></div>
+            <div class="n n-muted">сайдкар метрик<small>localhost:8080</small></div>
+            <div class="n n-db">том пода<small>пустой или с секретом</small></div>
+        </div>
+        <ul>
+            <li>Основной случай продакшена — один контейнер приложения в поде. Второй контейнер появляется по конкретной причине: прокси, сбор логов, адаптер. Это не повод сложить API, базу и брокер в один под.</li>
+            <li>Под смертен. Его можно выселить с узла. Состояние, которое обязано пережить под, лежит на томе с отдельным жизненным циклом или вне кластера.</li>
+            <li>У пода есть фазы. <code>Pending</code> значит, что контейнер ещё не запущен: нет узла, не скачался образ, не привязался том. <code>Running</code> не значит «готов к трафику»: готовность задаёт проба.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>23. Deployment и ReplicaSet</h2>
+    <div class="box aws-text">
+        <p class="lead">Deployment описывает, какой шаблон пода держать и в скольких копиях. Сам он поды не создаёт напрямую: он создаёт ReplicaSet, а ReplicaSet создаёт и удаляет поды, чтобы число совпало с желаемым. Каждая выкатка — новый ReplicaSet. Предыдущий остаётся с нулём реплик и нужен для отката.</p>
+        <div class="flow">
+            <div class="n n-gw">Deployment<small>replicas: 3</small></div>
+            <div class="a">→</div>
+            <div class="n n-kafka">ReplicaSet<small>шаблон версии</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">Pod</div>
+            <div class="n n-svc">Pod</div>
+            <div class="n n-svc">Pod</div>
+        </div>
+        <ul>
+            <li>Селектор Deployment обязан совпадать с метками шаблона пода. Селектор после создания не меняют.</li>
+            <li>Удаление отдельного пода никого не «ломает навсегда»: ReplicaSet видит нехватку и создаёт замену.</li>
+            <li>Deployment рассчитан на процесс без локального состояния. База с диском — другой объект, StatefulSet, и даже он не отменяет необходимость резервных копий.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>24. Service</h2>
+    <div class="box aws-text">
+        <p class="lead">Поды получают новые IP после каждого пересоздания. Service даёт стабильные DNS-имя и виртуальный IP и ведёт список подов, чьи метки совпали с селектором и кто прошёл проверку готовности. Клиент внутри кластера ходит на <code>chat-api.default.svc.cluster.local</code>, а не на IP пода.</p>
+        <table class="cmp">
+            <tr><th>Тип</th><th>Кто может прийти</th></tr>
+            <tr><td><code>ClusterIP</code></td><td>Только изнутри кластера. Тип по умолчанию и правильный выбор для базы, брокера и внутреннего API</td></tr>
+            <tr><td><code>NodePort</code></td><td>Порт на каждом узле. Годится для отладки, в проде обычно перекрыт балансировщиком или Ingress</td></tr>
+            <tr><td><code>LoadBalancer</code></td><td>Облако создаёт внешний балансировщик. Так часто публикуют сам Ingress-контроллер, а не каждый сервис</td></tr>
+        </table>
+        <p class="note">Список адресов лежит в EndpointSlice. Под без прошедшей readiness в этот список не входит. Headless Service (<code>clusterIP: None</code>) не выдаёт виртуальный IP: DNS возвращает адреса подов напрямую. Так ходят в StatefulSet, где важна конкретная реплика.</p>
+    </div>
+</section>
+
+<section>
+    <h2>25. Ingress</h2>
+    <div class="box aws-text">
+        <p class="lead">Ingress описывает, как внешний HTTP и HTTPS попадают в Service: имя хоста, путь, TLS. Сам объект трафик не принимает. Его читает Ingress-контроллер — набор подов, который и является прокси. Нет контроллера — манифест Ingress ничего не меняет в сети.</p>
+        <div class="flow">
+            <div class="n n-client">клиент</div>
+            <div class="a">→</div>
+            <div class="n n-saga">балансировщик</div>
+            <div class="a">→</div>
+            <div class="n n-gw">контроллер Ingress<small>читает объекты Ingress</small></div>
+            <div class="a">→</div>
+            <div class="n n-kafka">Service</div>
+            <div class="a">→</div>
+            <div class="n n-svc">поды API</div>
+        </div>
+        <ul>
+            <li>Service уровня L4 разводит TCP по подам. Ingress добавляет правила уровня HTTP: <code>chat.example.com/api</code> на один Service, <code>/static</code> на другой.</li>
+            <li>Несколько приложений делят один внешний адрес и один сертификат на контроллере. По LoadBalancer на каждый сервис это обычно дороже и шумнее.</li>
+            <li>Gateway API делает ту же работу более новым интерфейсом. На базовом собеседовании ждут понимание Ingress и того, что контроллер обязателен.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>26. Метки, селекторы, Namespace</h2>
+    <div class="box aws-text">
+        <p class="lead">Метка — пара ключ и значение на объекте. Селектор выбирает объекты по меткам. Service находит поды только так. ReplicaSet владеет подами только так. Имени пода в селекторе Service нет.</p>
+        <ul>
+            <li>Метки шаблона пода включают все метки селектора Deployment. Лишняя метка на поде допустима. Недостающая метка селектора означает, что Service этот под не увидит, хотя под запущен.</li>
+            <li>Namespace делит имена и права: в <code>prod</code> и <code>dev</code> могут быть Service с одним и тем же коротким именем. Сеть и CPU namespace сам не делит.</li>
+            <li>Квоту на запросы ресурсов задаёт ResourceQuota. Сетевую изоляцию между namespace задаёт NetworkPolicy, и только если её вообще включили в кластере. Пустой кластер с двумя namespace — это два каталога имён, а не два контура безопасности.</li>
+            <li>RBAC привязывает права к service account пода. Приложение, которому не назначен аккаунт с узкими правами, не должно наследовать широкий доступ к API кластера.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>27. ConfigMap и Secret</h2>
+    <div class="box aws-text">
+        <p class="lead">Образ один на все среды. Отличаются адрес базы, уровень логов, имя очереди. Это лежит в ConfigMap. Пароль и ключ лежат в Secret. Оба объекта монтируют файлом или прокидывают в переменные окружения. Смена образа для смены адреса базы не нужна.</p>
+        <div class="cols">
+            <div class="card">
+                <h3>ConfigMap</h3>
+                <p>Обычный текст конфигурации. Файл, смонтированный в под, можно обновлять без пересоздания пода, если приложение само перечитывает файл. Переменная окружения из ConfigMap обновляется только с новым подом.</p>
+            </div>
+            <div class="card bad">
+                <h3>Secret</h3>
+                <p>В манифесте значение часто показано в base64. Это кодирование, чтобы положить произвольные байты в YAML, а не шифрование. Кто имеет право читать Secret, получает секрет. Шифрование etcd и запрет на чтение через RBAC настраиваются отдельно.</p>
+            </div>
+        </div>
+        <p class="note">Секрет в переменной окружения легко утекает в лог старта и в дамп процесса. Файл в памяти предпочтителен для настоящего ключа. В манифест git значение Secret не коммитят: его доставляет отдельный контур, например External Secrets или зашифрованный хранилищем репозиторий.</p>
+    </div>
+</section>
+
+<section>
+    <h2>28. Пробы</h2>
+    <div class="box aws-text">
+        <table class="cmp">
+            <tr><th>Проба</th><th>Вопрос</th><th>Провал</th></tr>
+            <tr><td>startup</td><td>Процесс уже дошёл до рабочего состояния после старта?</td><td>Пока проба не успешна, liveness и readiness не мешают долгому запуску</td></tr>
+            <tr><td>readiness</td><td>Можно ли слать этому поду трафик сейчас?</td><td>Под вынимают из EndpointSlice. Процесс не перезапускают</td></tr>
+            <tr><td>liveness</td><td>Процесс застрял так, что помогает только рестарт?</td><td>kubelet убивает контейнер и поднимает его снова</td></tr>
+        </table>
+        <ul>
+            <li>Readiness на «база недоступна» имеет смысл, если без базы ответ пользователю всё равно невозможен: трафик уйдёт на другие поды. Liveness на ту же проверку вредна: база моргнула, и кластер перезапустил все копии API разом.</li>
+            <li>Таймаут, период и порог неуспехов задают явно. Значения по умолчанию убивают медленный, но живой старт.</li>
+            <li>Проба бьёт в порт контейнера этого пода. Проба, которая ходит в сам балансировщик снаружи, зацикливает зависимость.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>29. Requests и limits</h2>
+    <div class="box aws-text">
+        <p class="lead"><code>requests</code> — сколько CPU и памяти планировщик резервирует под контейнер, когда ищет узел. <code>limits</code> — потолок cgroup на уже запущенном контейнере. Это разные числа и разные последствия.</p>
+        <ul>
+            <li>Память выше limit заканчивается OOMKill. Процесс убивает ядро узла, kubelet фиксирует перезапуск.</li>
+            <li>CPU выше limit не убивает процесс, а троттлит его. Симптом — рост задержки при живом процессе и при свободной с виду машине.</li>
+            <li>Под без requests планировщик считает почти бесплатным и может набить узел плотнее, чем тот выдержит. Под с завышенными requests стоит в <code>Pending</code>, хотя по факту память на узле свободна.</li>
+            <li>Если у каждого контейнера request равен limit и по CPU, и по памяти, под получает класс Guaranteed: при нехватке ресурсов на узле его выселяют последним. Под без requests и limits получает класс BestEffort, и выселяют его первым.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>30. Выкатка и откат</h2>
+    <div class="box aws-text">
+        <p class="lead">Смена образа в Deployment создаёт новый ReplicaSet. <code>maxSurge</code> разрешает временно иметь больше подов, чем желаемое число. <code>maxUnavailable</code> ограничивает, сколько старых подов можно убрать, пока новые не готовы. Готовность определяет проба readiness, а не факт, что процесс стартовал.</p>
+        <div class="seq" style="margin-top:8px;">
+            <div class="flow" style="margin-top:0;">
+                <div class="n n-muted">старые 3 пода<small>образ sha256:aaa</small></div>
+                <div class="a">→</div>
+                <div class="n n-saga">2 старых + 2 новых<small>всплеск по maxSurge</small></div>
+                <div class="a">→</div>
+                <div class="n n-ok">новые 3 пода<small>sha256:bbb</small></div>
+            </div>
+        </div>
+        <ul>
+            <li>Откат — возврат к предыдущему ReplicaSet, то есть к прежнему digest. Команда <code>kubectl rollout undo</code> делает именно это. Откатывать нечего, если оба «релиза» были тегом <code>latest</code> и он уже перезаписан.</li>
+            <li>Застрявшая выкатка почти всегда видна так: новые поды не становятся Ready. Причины — падение при старте, проба, не скачавшийся образ, нехватка requests на узлах.</li>
+            <li>HorizontalPodAutoscaler меняет число реплик по метрике. Он не заменяет ни пробы, ни лимиты: он только правит <code>replicas</code>.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>31. Чего кластер сам не сделает</h2>
+    <div class="box aws-text">
+        <ul>
+            <li>Не соберёт образ и не выберет удачный Dockerfile. В манифесте указан адрес уже собранного образа.</li>
+            <li>Не превращает запись на локальный диск пода в надёжную базу. Диск пода исчезнет вместе с подом, если это <code>emptyDir</code>.</li>
+            <li>Не шифрует Secret только потому, что объект называется Secret.</li>
+            <li>Не изолирует команды друг от друга без RBAC, ResourceQuota и NetworkPolicy.</li>
+            <li>Не знает про бизнес-готовность приложения, пока проба не описана. <code>Running</code> означает, что контейнер запущен.</li>
+            <li>Не заменяет миграции схемы. Их запускают отдельным шагом до того, как новый код начнёт ждать новые колонки. Две реплики, одновременно выполняющие одну и ту же неидемпотентную миграцию, — уже инцидент.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>32. Вопросы. Объекты Kubernetes</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Почему у пода один IP, даже если контейнеров два?</p>
+                <p>Контейнеры пода делят сетевой namespace. Слушать один и тот же порт двумя контейнерами нельзя, зато сайдкар ходит в приложение по localhost. Под целиком ставится на один узел.</p>
+            </div>
+            <div class="item">
+                <p class="q">Кто создаёт поды, если в git лежит только Deployment?</p>
+                <p>Контроллер Deployment создаёт ReplicaSet на каждую ревизию. Контроллер ReplicaSet создаёт и удаляет поды по селектору, пока число не совпадёт с желаемым. Ручное создание подов рядом с Deployment обходит этот контур.</p>
+            </div>
+            <div class="item">
+                <p class="q">Чем Service отличается от Deployment?</p>
+                <p>Deployment отвечает на вопрос, сколько подов какого шаблона должно существовать. Service отвечает на вопрос, по какому стабильному адресу в эти поды попасть. Один без другого либо не запускает процесс, либо не даёт к нему устойчивого входа.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>33. Вопросы. Трафик и конфигурация</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Чем Ingress отличается от Service типа LoadBalancer?</p>
+                <p>LoadBalancer публикует один Service на уровне TCP или UDP и обычно получает отдельный внешний адрес. Ingress задаёт HTTP-правила по хосту и пути и требует контроллер. Контроллер сам часто опубликован одним LoadBalancer на много приложений.</p>
+            </div>
+            <div class="item">
+                <p class="q">Под запущен, а запросов не получает. С чего начать?</p>
+                <p>С меток и readiness. Service выбирает поды селектором, а в EndpointSlice попадают только готовые. Чужая метка, проваленная проба или под в другом namespace объясняют пустой список чаще, чем «сломанный балансировщик».</p>
+            </div>
+            <div class="item">
+                <p class="q">Secret в Kubernetes зашифрован?</p>
+                <p>Base64 в YAML — кодирование. Защита складывается из RBAC на чтение объекта и из шифрования etcd, если его включили. Образ и git манифестом с расшифрованным значением эту защиту обходят.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>34. Вопросы. Пробы, ресурсы, сбои</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Куда вешать проверку «PostgreSQL отвечает»?</p>
+                <p>В readiness, если без базы этот под не должен получать трафик. В liveness её не кладут: короткий сбой базы перезапустит все копии приложения и усилит сбой. Liveness отвечает только на вопрос «этот процесс завис и лечится рестартом».</p>
+            </div>
+            <div class="item">
+                <p class="q">Под в Pending, узлы при этом живы. Что проверять?</p>
+                <p>Хватает ли на узлах CPU и памяти именно под requests, а не под фактическое потребление. Дальше — taint и nodeSelector, ошибка скачивания образа, непривязанный PVC. События пода называют причину прямо.</p>
+            </div>
+            <div class="item">
+                <p class="q">Что такое CrashLoopBackOff?</p>
+                <p>Контейнер запускается и сразу завершается. kubelet увеличивает паузу между попытками. Смотреть нужно лог предыдущего экземпляра и пробы: слишком жёсткая liveness на старте даёт тот же симптом, что и исключение в коде.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>35. Три контура одного приложения</h2>
+    <div class="box aws-text">
+        <p class="lead">Приложение одно: stateless API, PostgreSQL, RabbitMQ. Меняется только то, кто запускает процессы и где лежит состояние. Образ API во всех контурах один и тот же.</p>
+        <table class="cmp">
+            <tr><th></th><th>Где работает</th><th>Кто следит за числом копий</th><th>Куда смотрит клиент</th></tr>
+            <tr><td>Compose</td><td>Одна машина с демоном Docker</td><td>Демон этой машины и политика restart</td><td>Проброшенный порт локально</td></tr>
+            <tr><td>Kubernetes</td><td>Кластер из узлов, своя или управляемая control plane</td><td>Контроллеры Deployment и ReplicaSet</td><td>Ingress и Service</td></tr>
+            <tr><td>ECS</td><td>Аккаунт AWS, кластер ECS</td><td>Планировщик сервиса ECS</td><td>ALB или NLB</td></tr>
+        </table>
+        <p class="note">EKS — это Kubernetes, у которого AWS ведёт control plane. ECS — другой оркестратор, со своими объектами. Общее у них только то, что оба живут в AWS и оба умеют запускать контейнер из ECR.</p>
+    </div>
+</section>
+
+<section>
+    <h2>36. Compose для разработки</h2>
+    <div class="box aws-text">
+        <p class="lead">Compose-файл описывает набор контейнеров, их общую сеть, тома и переменные. Одна команда <code>docker compose up</code> поднимает API, базу и брокер так, как они увидят друг друга по именам. Это среда разработчика, а не декларация продакшена.</p>
+        <pre><code>services:
+  api:
+    build: .
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["./app:/app"]
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/chat
+    depends_on:
+      postgres: {condition: service_healthy}
+  postgres:
+    image: postgres:16
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d chat"]
+volumes:
+  pgdata:</code></pre>
+    </div>
+</section>
+
+<section>
+    <h2>37. Схема Compose</h2>
+    <div class="box aws-text">
+        <p class="lead">Всё происходит на одной машине. Своей control plane нет. DNS-имена выдаёт пользовательская сеть проекта Compose.</p>
+        <svg class="pic" viewBox="0 0 1040 230" role="img">
+            <rect x="16" y="16" width="1008" height="198" rx="16" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+            <text x="36" y="42" fill="#334155" font-size="16" font-family="sans-serif" font-weight="700">машина разработчика · один демон Docker</text>
+            <rect x="40" y="64" width="620" height="130" rx="12" fill="#eff6ff" stroke="#0284c7" stroke-width="2" stroke-dasharray="6 4"/>
+            <text x="56" y="86" fill="#0369a1" font-size="14" font-family="sans-serif">сеть проекта: DNS по имени сервиса</text>
+            <rect x="56" y="104" width="170" height="68" rx="8" fill="#0f766e"/>
+            <text x="141" y="134" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">api</text>
+            <text x="141" y="154" text-anchor="middle" fill="#ccfbf1" font-size="12" font-family="sans-serif">bind ./app</text>
+            <rect x="250" y="104" width="180" height="68" rx="8" fill="#6d28d9"/>
+            <text x="340" y="134" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">postgres</text>
+            <text x="340" y="154" text-anchor="middle" fill="#ede9fe" font-size="12" font-family="sans-serif">том pgdata</text>
+            <rect x="454" y="104" width="180" height="68" rx="8" fill="#c2410c"/>
+            <text x="544" y="134" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">rabbitmq</text>
+            <text x="544" y="154" text-anchor="middle" fill="#ffedd5" font-size="12" font-family="sans-serif">том данных брокера</text>
+            <rect x="700" y="78" width="290" height="100" rx="12" fill="#fff" stroke="#cbd5e1"/>
+            <text x="845" y="108" text-anchor="middle" fill="#0f172a" font-size="15" font-family="sans-serif" font-weight="700">браузер на этой же машине</text>
+            <text x="845" y="132" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">127.0.0.1:8080 → api</text>
+            <text x="845" y="154" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">наружу хост порт не слушает</text>
+        </svg>
+    </div>
+</section>
+
+<section>
+    <h2>38. Где Compose заканчивается</h2>
+    <div class="box aws-text">
+        <ul>
+            <li><code>depends_on</code> без условия здоровья задаёт только порядок старта процессов. База может ещё не принимать соединения. Условие <code>service_healthy</code> ждёт HEALTHCHECK зависимости, и сама проверка должна быть честной, как <code>pg_isready</code>, а не «процесс существует».</li>
+            <li><code>docker compose up --scale api=3</code> поднимает три процесса на той же машине. Потери машины заменить нечем: вместе с демоном пропадает весь проект.</li>
+            <li>Выкатки с <code>maxSurge</code> и общим внешним балансировщиком в этой модели нет. <code>compose up</code> пересоздаёт контейнеры проекта на месте.</li>
+            <li>Bind mount исходников и сборка <code>build: .</code> на машине разработчика ускоряют цикл. В проде тот же файл с <code>build</code> означает сборку неизвестно из какого дерева файлов на сервере.</li>
+            <li>Секреты в compose-файле для локального пароля <code>app:app</code> приемлемы. Тот же файл с боевым паролем, закоммиченный в git, — утечка.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>39. Путь запроса в Kubernetes</h2>
+    <div class="box aws-text">
+        <p class="lead">Клиент не знает IP подов. Он знает имя хоста. Дальше каждый уровень занимается своим: TLS и путь — Ingress, стабильный адрес и состав готовых подов — Service, процесс — под.</p>
+        <div class="seq">
+            <div class="seq-row"><span class="who">Клиент</span><span class="a">→</span><span class="who">Балансировщик</span><span class="msg">HTTPS на адрес, который облако дало контроллеру Ingress</span></div>
+            <div class="seq-row"><span class="who">Ingress</span><span class="a">→</span><span class="who">Service api</span><span class="msg">правило host и path выбирает Service, не под</span></div>
+            <div class="seq-row"><span class="who">Service</span><span class="a">→</span><span class="who">EndpointSlice</span><span class="msg">только поды с меткой app=api и успешной readiness</span></div>
+            <div class="seq-row"><span class="who">Под</span><span class="a">→</span><span class="who">процесс</span><span class="msg">контейнер слушает 8080, ответ уходит обратно по той же цепочке</span></div>
+        </div>
+        <p class="note">API в поде ходит в PostgreSQL по ClusterIP отдельного Service или, что чаще в проде, по адресу управляемой базы вне кластера. В под к API это соединение исходящее. Через Ingress оно не проходит.</p>
+    </div>
+</section>
+
+<section>
+    <h2>40. Схема кластера</h2>
+    <div class="box aws-text">
+        <svg class="pic" viewBox="0 0 1040 250" role="img">
+            <rect x="16" y="12" width="300" height="226" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+            <text x="166" y="38" text-anchor="middle" fill="#0f172a" font-size="15" font-family="sans-serif" font-weight="700">control plane</text>
+            <rect x="36" y="52" width="260" height="36" rx="8" fill="#334155"/><text x="166" y="75" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">API server</text>
+            <rect x="36" y="98" width="260" height="36" rx="8" fill="#6d28d9"/><text x="166" y="121" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">etcd</text>
+            <rect x="36" y="144" width="260" height="36" rx="8" fill="#0369a1"/><text x="166" y="167" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">scheduler</text>
+            <rect x="36" y="190" width="260" height="36" rx="8" fill="#0f766e"/><text x="166" y="213" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">controllers</text>
+            <rect x="360" y="12" width="320" height="226" rx="12" fill="#f0fdf4" stroke="#0f766e" stroke-width="2"/>
+            <text x="520" y="38" text-anchor="middle" fill="#14532d" font-size="15" font-family="sans-serif" font-weight="700">узел 1 · kubelet</text>
+            <rect x="384" y="58" width="130" height="48" rx="8" fill="#0f766e"/><text x="449" y="87" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">api pod</text>
+            <rect x="526" y="58" width="130" height="48" rx="8" fill="#0f766e"/><text x="591" y="87" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">api pod</text>
+            <rect x="384" y="124" width="272" height="48" rx="8" fill="#0369a1"/><text x="520" y="153" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">ingress-контроллер</text>
+            <rect x="384" y="186" width="272" height="36" rx="8" fill="#64748b"/><text x="520" y="209" text-anchor="middle" fill="#fff" font-size="13" font-family="sans-serif">kube-proxy или eBPF</text>
+            <rect x="704" y="12" width="320" height="226" rx="12" fill="#f0fdf4" stroke="#0f766e" stroke-width="2"/>
+            <text x="864" y="38" text-anchor="middle" fill="#14532d" font-size="15" font-family="sans-serif" font-weight="700">узел 2 · kubelet</text>
+            <rect x="728" y="58" width="130" height="48" rx="8" fill="#0f766e"/><text x="793" y="87" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">api pod</text>
+            <rect x="870" y="58" width="130" height="48" rx="8" fill="#b45309"/><text x="935" y="87" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">worker</text>
+            <text x="864" y="150" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">PostgreSQL сюда не ставят</text>
+            <text x="864" y="172" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">как обычный Deployment.</text>
+            <text x="864" y="194" text-anchor="middle" fill="#334155" font-size="14" font-family="sans-serif">База — вне этих подов.</text>
+        </svg>
+    </div>
+</section>
+
+<section>
+    <h2>41. Объекты ECS</h2>
+    <div class="box aws-text">
+        <p class="lead">У ECS свой словарь. Он закрывает ту же работу, что Pod и Deployment, но объектами AWS, а не объектами Kubernetes.</p>
+        <table class="cmp">
+            <tr><th>Объект ECS</th><th>Роль</th><th>Ближайший аналог</th></tr>
+            <tr><td>Cluster</td><td>Логическая группа, внутри которой запускают задачи</td><td>Кластер, но без etcd и без ваших контроллеров</td></tr>
+            <tr><td>Task definition</td><td>Описание: образы, CPU, память, порты, логи, две IAM-роли</td><td>Шаблон пода</td></tr>
+            <tr><td>Task</td><td>Запущенный экземпляр этого описания</td><td>Под</td></tr>
+            <tr><td>Service</td><td>Держит desired count задач, выкатывает новую ревизию, цепляет балансировщик</td><td>Deployment вместе с Service</td></tr>
+            <tr><td>ECR</td><td>Реестр образов в аккаунте</td><td>Любой container registry</td></tr>
+        </table>
+        <p class="tiny">Control plane ECS принадлежит AWS. etcd, scheduler и API, совместимого с <code>kubectl</code>, у этого сервиса нет. Желаемое состояние читается и пишется через API AWS.</p>
+    </div>
+</section>
+
+<section>
+    <h2>42. Схема ECS</h2>
+    <div class="box aws-text">
+        <svg class="pic" viewBox="0 0 1040 268" role="img">
+            <rect x="16" y="8" width="1008" height="252" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+            <text x="36" y="32" fill="#334155" font-size="14" font-family="sans-serif" font-weight="700">VPC</text>
+            <rect x="40" y="48" width="250" height="64" rx="8" fill="#0369a1"/>
+            <text x="165" y="76" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">ALB</text>
+            <text x="165" y="96" text-anchor="middle" fill="#e0f2fe" font-size="12" font-family="sans-serif">публичные подсети</text>
+            <rect x="330" y="44" width="470" height="150" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+            <text x="565" y="66" text-anchor="middle" fill="#9a3412" font-size="14" font-family="sans-serif">частные подсети · сервис ECS, desired count 3</text>
+            <rect x="350" y="84" width="130" height="86" rx="8" fill="#0f766e"/>
+            <text x="415" y="122" text-anchor="middle" fill="#fff" font-size="15" font-family="sans-serif">task</text>
+            <text x="415" y="142" text-anchor="middle" fill="#ccfbf1" font-size="12" font-family="sans-serif">awsvpc, свой IP</text>
+            <rect x="496" y="84" width="130" height="86" rx="8" fill="#0f766e"/>
+            <text x="561" y="122" text-anchor="middle" fill="#fff" font-size="15" font-family="sans-serif">task</text>
+            <text x="561" y="142" text-anchor="middle" fill="#ccfbf1" font-size="12" font-family="sans-serif">security group</text>
+            <rect x="642" y="84" width="130" height="86" rx="8" fill="#0f766e"/>
+            <text x="707" y="122" text-anchor="middle" fill="#fff" font-size="15" font-family="sans-serif">task</text>
+            <text x="707" y="142" text-anchor="middle" fill="#ccfbf1" font-size="12" font-family="sans-serif">образ из ECR</text>
+            <rect x="830" y="48" width="170" height="64" rx="8" fill="#6d28d9"/>
+            <text x="915" y="76" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">RDS</text>
+            <text x="915" y="96" text-anchor="middle" fill="#ede9fe" font-size="12" font-family="sans-serif">не task</text>
+            <rect x="830" y="128" width="170" height="64" rx="8" fill="#1d4ed8"/>
+            <text x="915" y="156" text-anchor="middle" fill="#fff" font-size="16" font-family="sans-serif">ECR</text>
+            <text x="915" y="176" text-anchor="middle" fill="#dbeafe" font-size="12" font-family="sans-serif">digest образа</text>
+            <text x="165" y="136" text-anchor="middle" fill="#0369a1" font-size="13" font-family="sans-serif">target group, тип IP</text>
+            <rect x="40" y="196" width="250" height="44" rx="8" fill="#64748b"/>
+            <text x="165" y="223" text-anchor="middle" fill="#fff" font-size="14" font-family="sans-serif">CloudWatch Logs</text>
+        </svg>
+        <p class="tiny">ALB проверяет здоровье своим health check и вынимает задачу из target group. Это проверка балансировщика, отдельная от проверки внутри определения задачи.</p>
+    </div>
+</section>
+
+<section>
+    <h2>43. Fargate и запуск на EC2</h2>
+    <div class="box aws-text">
+        <div class="cols">
+            <div class="card good">
+                <h3>Fargate</h3>
+                <p>Задача получает CPU и память без вашего инстанса. Патчи хоста, ёмкость парка и агент ECS — забота AWS. Платить приходится за запрошенные задачей ресурсы, даже когда процесс их не занимает целиком. Свой демон на узел, GPU и произвольный доступ к хосту сюда не приносятся.</p>
+            </div>
+            <div class="card">
+                <h3>EC2 launch type</h3>
+                <p>Вы описываете инстансы кластера, их AMI, автомасштабирование и агент. Задача садится на эти инстансы. Так получают GPU, особый диск и более плотную упаковку при ровной нагрузке. Вместе с этим приходят патчи ОС и простой, если ёмкость инстансов кончилась раньше, чем ёмкость сервиса.</p>
+            </div>
+        </div>
+        <p class="note">Для API без локального состояния стартовый выбор — Fargate. EC2 launch type берут, когда появилось измеренное ограничение Fargate, а не заранее «на всякий случай». Смешивать оба в одном кластере можно через capacity providers, но это уже вторая итерация, когда профили задач реально различаются.</p>
+    </div>
+</section>
+
+<section>
+    <h2>44. Роли, сеть и логи в ECS</h2>
+    <div class="box aws-text">
+        <ul>
+            <li><b>Execution role</b> нужна агенту, который запускает задачу: скачать образ из ECR, отдать логи в CloudWatch, прочитать секрет, чтобы подставить его при старте. Приложение этой ролью не пользуется.</li>
+            <li><b>Task role</b> получает процесс внутри задачи. Если API читает S3 или шлёт сообщение в SQS, права лежат здесь. Роль узла или execution role для этого шире, чем нужно приложению.</li>
+            <li>Режим сети <code>awsvpc</code> даёт задаче свой сетевой интерфейс, свой частный IP и свою security group. Target group у ALB тогда типа <code>ip</code>, а не типа <code>instance</code>.</li>
+            <li>Security group задачи принимает трафик только от security group балансировщика и только на порт контейнера. База принимает трафик только от security group задачи.</li>
+            <li>Лог-драйвер <code>awslogs</code> забирает stdout. Файл в контейнере в CloudWatch сам не попадёт. Группу логов создают до выкатки, иначе задача падает на старте.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>45. ECS и EKS</h2>
+    <div class="box aws-text">
+        <p class="lead">Оба запускают контейнер в AWS. Дальше совпадения заканчиваются. Путать их на схеме значит описать систему, которой нет: у ECS не будет Ingress, у кластера EKS не будет task definition.</p>
+        <table class="cmp">
+            <tr><th></th><th>ECS</th><th>EKS</th></tr>
+            <tr><td>Модель</td><td>Сервис AWS со своим API</td><td>Kubernetes. Control plane ведёт AWS</td></tr>
+            <tr><td>Единица</td><td>Task из task definition</td><td>Pod из манифеста</td></tr>
+            <tr><td>Вход HTTP</td><td>ALB или NLB напрямую к сервису</td><td>Ingress или Gateway, часто тоже через AWS Load Balancer Controller</td></tr>
+            <tr><td>Перенос</td><td>Описание задач живёт в API AWS</td><td>Манифесты переносимы на другой Kubernetes с оговорками по Ingress, хранилищам и балансировщику</td></tr>
+            <tr><td>Экосистема</td><td>Сервисы AWS вокруг задачи</td><td>Контроллеры, Helm, те же приёмы, что вне AWS</td></tr>
+            <tr><td>Цена владения</td><td>Меньше своих объектов, пока система внутри AWS</td><td>Больше понятий и больше переносимости</td></tr>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>46. Одно приложение тремя способами</h2>
+    <div class="box aws-text">
+        <table class="cmp">
+            <tr><th></th><th>Compose на ноутбуке</th><th>Kubernetes</th><th>ECS</th></tr>
+            <tr><td>API</td><td>Сервис <code>api</code>, сборка из каталога, bind mount кода, порт на localhost</td><td>Deployment на 3 реплики, Service ClusterIP, Ingress с хостом</td><td>Service desired count 3, task definition, ALB</td></tr>
+            <tr><td>Образ API</td><td>Собирается локально при <code>up --build</code></td><td>Тот же CI-образ по digest из реестра</td><td>Тот же digest из ECR</td></tr>
+            <tr><td>PostgreSQL</td><td>Контейнер и named volume</td><td>Управляемая база или отдельный тщательно ведомый контур. Не emptyDir</td><td>RDS в частных подсетях</td></tr>
+            <tr><td>RabbitMQ</td><td>Контейнер для локальной очереди</td><td>Управляемый брокер или отдельный кластер брокера</td><td>Amazon MQ или брокер, который вы сами оперируете</td></tr>
+            <tr><td>Секрет базы</td><td>Локальный пароль в compose, файл не для git с боевыми значениями</td><td>Secret или внешний магазин секретов</td><td>Secrets Manager или SSM, чтение через execution role</td></tr>
+            <tr><td>Копии API</td><td>Одна, иногда несколько на той же машине</td><td><code>replicas</code></td><td><code>desiredCount</code></td></tr>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>47. Где живёт база</h2>
+    <div class="box aws-text">
+        <p class="lead">API без локального состояния переносится между Compose, Kubernetes и ECS почти механически: тот же образ, другая обвязка. База так не переносится. У неё диск, резервные копии, обновление версии и долгое восстановление.</p>
+        <ul>
+            <li>В Compose контейнер PostgreSQL с томом <code>pgdata</code> нормален. Это данные разработки, их можно создать заново.</li>
+            <li>В Kubernetes <code>emptyDir</code> для данных базы теряет их при пересоздании пода. StatefulSet с PVC сохраняет том, но бэкапы, failover и обновление мажорной версии остаются вашей эксплуатацией. Для большинства команд проще RDS или Cloud SQL.</li>
+            <li>В ECS задача с базой на эфемерном диске Fargate теряет данные при остановке задачи. Боевая база — RDS, security group которой принимает соединения только от задач API.</li>
+            <li>Миграции схемы запускают один раз на ревизию, до перевода трафика на новый код. Их не вкладывают в команду старта каждой из трёх реплик.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>48. Один образ на все среды</h2>
+    <div class="box aws-text">
+        <div class="flow">
+            <div class="n n-client">git</div>
+            <div class="a">→</div>
+            <div class="n n-saga">CI<small>docker build</small></div>
+            <div class="a">→</div>
+            <div class="n n-kafka">реестр<small>тег и digest</small></div>
+            <div class="a">→</div>
+            <div class="n n-svc">кластер или ECS<small>pull, не build</small></div>
+        </div>
+        <ul>
+            <li>CI собирает образ один раз на коммит, прогоняет тесты и пушит digest. Следующие среды этот digest скачивают. Пересборка «того же Dockerfile» на проде уже другой контекст и другой результат.</li>
+            <li>От среды зависят переменные и секреты, а не набор файлов в образе. Имя базы и уровень логов не запекают через <code>ARG</code> в слой.</li>
+            <li>Локальный <code>build: .</code> остаётся только в compose-файле разработчика. Рядом может лежать override-файл. Прод-манифест содержит поле <code>image</code> с digest и не содержит контекста сборки.</li>
+            <li>Откат во всех контурах — запуск предыдущего digest. Пока digest не перезаписан, откат не требует новой сборки.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>49. Сравнение подходов</h2>
+    <div class="box aws-text">
+        <table class="cmp">
+            <tr><th></th><th>Compose</th><th>Kubernetes</th><th>ECS</th></tr>
+            <tr><td>Сколько машин</td><td>Одна</td><td>Парк узлов</td><td>Парк задач, узлы видны только на EC2 launch type</td></tr>
+            <tr><td>Желаемое состояние</td><td>Файл на момент <code>up</code></td><td>Объекты в etcd, циклы контроллеров</td><td>Сервис и ревизия task definition в API AWS</td></tr>
+            <tr><td>Потеря машины</td><td>Проект лежит, пока машина лежит</td><td>Поды уедут на другие узлы, если место по requests есть</td><td>Сервис добьёт desired count на оставшейся ёмкости</td></tr>
+            <tr><td>Выкатка</td><td>Пересоздание на месте</td><td>Новый ReplicaSet, surge и unavailable</td><td>Новая ревизия, minimumHealthyPercent и circuit breaker</td></tr>
+            <tr><td>Вход</td><td>Порт хоста</td><td>Ingress и Service</td><td>ALB или NLB</td></tr>
+            <tr><td>Перенос</td><td>На другую машину с Docker</td><td>В другой кластер, с заменой облачных привязок</td><td>В другой аккаунт AWS, не наружу из AWS</td></tr>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>50. Когда что выбирать</h2>
+    <div class="box aws-text">
+        <div class="cols-3">
+            <div class="card good">
+                <h3>Compose</h3>
+                <p>Compose нужен, чтобы поднять связку на ноутбуке и в простом прогоне CI. Одной команде на одной машине с учебными данными его хватает. Когда для продакшена нужна уже вторая машина, Compose перестаёт быть планом эксплуатации.</p>
+            </div>
+            <div class="card">
+                <h3>Kubernetes</h3>
+                <p>Kubernetes выбирают, когда сервисов и сред несколько, нужна переносимость или в команде уже есть люди, которые ведут кластер. Разумная форма — управляемый EKS или GKE. Свой control plane на трёх виртуальных машинах ради тренировки дорог по времени дежурных.</p>
+            </div>
+            <div class="card">
+                <h3>ECS</h3>
+                <p>ECS выбирают, когда продакшен остаётся в AWS и команде ближе объекты AWS, чем манифесты. Fargate снимает заботу об узлах, EKS при этом не обязателен. Брать ECS только чтобы не учить Kubernetes и сразу строить над ним свой оркестратор выигрыша не даёт.</p>
+            </div>
+        </div>
+        <p class="note">Смешивать можно по границе, а не по случайности. Ноутбук на Compose, прод на ECS, тот же digest в ECR. Или ноутбук на Compose, прод на EKS. Два продакшен-оркестратора для одного сервиса без жёсткой причины удваивают выкатку, секреты и дежурство.</p>
+    </div>
+</section>
+
+<section>
+    <h2>51. Ошибки, общие для трёх сред</h2>
+    <div class="box aws-text">
+        <ul>
+            <li>Тег <code>latest</code> и в compose, и в Deployment, и в task definition. Откат и повторная сборка становятся гаданием.</li>
+            <li>Секрет в образе или в git рядом с манифестом. Оркестратор тут ни при чём: он честно раздаёт то, что ему положили.</li>
+            <li>База на диске, который живёт столько же, сколько процесс. В Compose это отсутствие тома, в Kubernetes — emptyDir, в Fargate — диск задачи.</li>
+            <li>Проверка здоровья, которая ходит в зависимость и при этом считается поводом убить процесс. На одной машине это шум, в кластере — одновременный рестарт всех копий.</li>
+            <li>Разный Dockerfile для локальной машины и для прода. Расходятся зависимости, пользователь и схема запуска, и прод впервые видит комбинацию, которую никто не запускал.</li>
+            <li>Миграция схемы в команде старта каждой копии. Пока копий одна, это терпимо. На третьей реплике две миграции встречаются в одной базе.</li>
+        </ul>
+    </div>
+</section>
+
+<section>
+    <h2>52. Вопросы. Выбор платформы</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Зачем Compose, если прод всё равно на Kubernetes?</p>
+                <p>Compose поднимает полный локальный контур одной командой и не требует кластера на ноутбуке. В прод его файл не копируют. В прод уходит образ, собранный тем же Dockerfile, с другим описанием запуска.</p>
+            </div>
+            <div class="item">
+                <p class="q">Чем ECS отличается от EKS?</p>
+                <p>ECS — отдельный оркестратор AWS: task definition, service, desired count. EKS — Kubernetes, control plane которого ведёт AWS: поды, Deployment, Service, Ingress. Общие только регион, VPC, ECR и то, что оба умеют держать несколько копий контейнера.</p>
+            </div>
+            <div class="item">
+                <p class="q">Чем task definition отличается от Deployment?</p>
+                <p>Task definition описывает одну задачу: контейнеры, CPU, память, роли, логи. Число копий и выкатку задаёт уже service ECS. Deployment в Kubernetes совмещает шаблон пода и желаемое число реплик в одном объекте, а сетевой вход выносит в Service.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>53. Вопросы. Собрать продакшен</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Зачем задаче ECS две IAM-роли?</p>
+                <p>Execution role нужна инфраструктуре запуска: забрать образ, записать логи, достать секрет. Task role нужна коду приложения, когда оно само ходит в API AWS. Одна широкая роль на оба случая даёт процессу права агента, которые ему не нужны.</p>
+            </div>
+            <div class="item">
+                <p class="q">Куда деть PostgreSQL в каждом контуре?</p>
+                <p>Локально — контейнер с named volume. В Kubernetes и в ECS для боевых данных — управляемая база в частной сети. Диск пода, emptyDir и эфемерный диск Fargate переживают процесс не дольше, чем сам процесс.</p>
+            </div>
+            <div class="item">
+                <p class="q">Как провести версию от коммита до отката?</p>
+                <p>CI собирает образ один раз и пушит digest. Compose разработчика может собирать локально, прод только скачивает этот digest. Откат указывает предыдущий digest в Deployment или в ревизии task definition. Новая сборка для отката не нужна.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>54. Вопросы. Fargate, выкатка, depends_on</h2>
+    <div class="box aws-text">
+        <div class="qa">
+            <div class="item">
+                <p class="q">Когда API сажают на Fargate, а когда на EC2 launch type?</p>
+                <p>На Fargate сажают задачу, пока ей не нужны GPU, особый доступ к хосту или уже посчитанная экономия плотной упаковки. EC2 launch type добавляет AMI, патчи узлов и отдельную ёмкость инстансов. Эти возможности не бесплатны.</p>
+            </div>
+            <div class="item">
+                <p class="q">Как проходит выкатка без простоя в Kubernetes и в ECS?</p>
+                <p>В Kubernetes новый ReplicaSet поднимает поды, readiness пускает их в Service, старые уходят в пределах maxUnavailable и maxSurge. В ECS новая ревизия task definition поднимает задачи, ALB видит свой health check, minimumHealthyPercent не даёт убить старые раньше времени. В обоих случаях признак готовности — проверка, а не факт старта процесса.</p>
+            </div>
+            <div class="item">
+                <p class="q">Гарантирует ли depends_on, что база уже принимает запросы?</p>
+                <p>Нет, если не задано условие <code>service_healthy</code> и у базы нет HEALTHCHECK, который проверяет приём соединений. Обычный <code>depends_on</code> ждёт старт контейнера зависимости. Процесс базы к этому моменту может ещё поднимать файлы.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2>55. Что зафиксировать</h2>
+    <div class="box aws-text">
+        <ul>
+            <li>Контейнер — процесс на общем ядре. Образ неизменяем. Записываемый слой и всё, что в нём лежит без тома, живёт вместе с контейнером.</li>
+            <li>Сборка: редкие слои выше частых, multi-stage, непривилегированный uid, exec-форма, секрет мимо слоёв, digest вместо <code>latest</code>.</li>
+            <li>В Kubernetes под исполняет, Deployment держит число через ReplicaSet, Service даёт адрес, Ingress разбирает HTTP при наличии контроллера. Проба readiness управляет трафиком, проба liveness — рестартом.</li>
+            <li>Compose собирает одну машину разработчика. ECS и Kubernetes собирают прод. EKS — это Kubernetes, ECS — другой API.</li>
+            <li>Образ один, его собирает CI. База в проде управляемая. Секреты и адрес базы приходят окружением, а не новой сборкой.</li>
+        </ul>
+        <p class="note">Короткий самопроверка. Назвать PID&nbsp;1 при shell-форме CMD. Назвать объект, который создаёт поды Deployment. Назвать две IAM-роли задачи ECS и сказать, какая из них есть у процесса приложения.</p>
+    </div>
+</section>
+
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        width: 1280,
+        height: 820,
+        margin: 0.06,
+        center: true,
+        transition: 'slide'
+    });
+</script>
+</body>
+</html>
