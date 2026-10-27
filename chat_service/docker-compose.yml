@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: chat_db
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - chat_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+
+  chat-api:
+    build: .
+    ports:
+      - "8082:8082"
+    environment:
+      POSTGRES_DB: chat_db
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_pass
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8082
+      JWT_SECRET: lesson-secret-key-at-least-32b
+      JWT_EXPIRE_MINUTES: 1440
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - lesson-net
+
+networks:
+  backend:
+  lesson-net:
+    external: true
+    name: lesson-net
+
+volumes:
+  chat_pgdata:
