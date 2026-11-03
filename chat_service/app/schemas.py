@@ -100,3 +100,11 @@ class MessageRead(BaseModel):
             recipient_id=msg.recipient_id,
             created_at=msg.created_at,
         )
+
+
+class ProfileRead(BaseModel):
+    id: int
+    username: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

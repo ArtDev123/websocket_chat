@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.config import settings
+from app.consumer import start_consumer
 from app.db import SessionDep, make_engine, make_session_factory
 from app.errors import NotFoundError
 from app.routes import register_routes
@@ -19,8 +20,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     engine = make_engine()
     app.state.engine = engine
     app.state.session_factory = make_session_factory(engine)
+    app.state.broker = await start_consumer(app.state.session_factory)
     yield
+    await app.state.broker.close()
     await engine.dispose()
+
 
 
 def create_app() -> FastAPI:
