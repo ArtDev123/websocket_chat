@@ -1,0 +1,16 @@
+name: chat_service_test
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: chat_test
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_pass
+    ports:
+      - "5437:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10

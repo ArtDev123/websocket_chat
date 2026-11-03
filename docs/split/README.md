@@ -43,3 +43,5 @@
 | aio-pika | async-клиент, чтобы не блокировать uvicorn |
 
 **Старт:** [step-01-broker.md](step-01-broker.md)
+
+Следующий урок вешает на оба сервиса пайплайн: тесты, ruff и Docker, у каждого своя тестовая база — [../pipelines/README.md](../pipelines/README.md).

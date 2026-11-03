@@ -2,8 +2,7 @@ from fastapi import APIRouter, HTTPException
 from starlette import status
 
 from app.auth import CurrentUser
-from app.deps import MessageRepoDep, RoomRepoDep, UserRepoDep
-from app.errors import NotFoundError
+from app.deps import MessageRepoDep, ProfileRepoDep, RoomRepoDep
 from app.schemas import MessageRead
 
 router = APIRouter(tags=["messages"])

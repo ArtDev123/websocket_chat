@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.auth import create_access_token, hash_password, verify_password, CurrentUser
+from app.auth import CurrentUser, create_access_token, hash_password, verify_password
 from app.broker import BrokerUnavailable, publish_user_registered
 from app.deps import UserRepoDep
 from app.schemas import LoginRequest, RegisterRequest, TokenResponse, UserRead

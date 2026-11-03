@@ -54,3 +54,5 @@
 **Старт:** [step-01-setup.md](step-01-setup.md)
 
 Монолит после этих шагов можно разрезать на user-сервис и chat-сервис с RabbitMQ: [split/README.md](split/README.md). Код монолита при этом остаётся на месте.
+
+Дальше для обоих сервисов собирается пайплайн — тесты на отдельной базе, ruff и подъём Docker: [pipelines/README.md](pipelines/README.md).

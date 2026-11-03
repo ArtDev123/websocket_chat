@@ -2,15 +2,14 @@ import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from app.auth import decode_token_payload
+from app.auth import TokenUser, decode_token_payload
 from app.enums import WsClientType
 from app.errors import NotFoundError
 from app.manager import manager
 from app.repositories.messages import MessageRepository
-from app.repositories.rooms import RoomRepository
-from app.auth import TokenUser, decode_token_payload
 from app.repositories.profiles import UserProfileRepository
-from app.schemas import WsErrorOut, WsIncoming, WsSystemOut, WsMessageOut, WsDmOut
+from app.repositories.rooms import RoomRepository
+from app.schemas import WsDmOut, WsErrorOut, WsIncoming, WsMessageOut, WsSystemOut
 
 router = APIRouter(tags=["ws"])
 

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from app.models import Message
