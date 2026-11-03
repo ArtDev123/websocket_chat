@@ -40,9 +40,8 @@ class Settings(BaseSettings):
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 
-    @property
-    def cors_origin_list(self) -> list[str]:
-        return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
+    cors_origin_list: list[str] = ["http://localhost:8082", "http://127.0.0.1:8082", "http://localhost:8082/"]
+
 
 
 settings = Settings()
