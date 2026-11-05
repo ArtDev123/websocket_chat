@@ -59,7 +59,7 @@ jobs:
       - name: user service
         working-directory: user_service
         run: docker compose up -d --build --wait
-        - name: Wait for service and check health
+      - name: Wait for service and check health
         run: |
           echo "Ожидаем запуск сервиса на порту 8082..."
           
@@ -75,7 +75,7 @@ jobs:
           done
 
           echo "Выполняем финальную проверку здоровья эндпоинта..."
-          curl -v --fail --retry 5 --retry-delay 3 --connect-timeout 5 http://127.0.0.1:8082/health
+          curl -v --fail --retry 5 --retry-delay 3 --connect-timeout 5 http://127.0.0.1:8081/health
 
       - name: down
         if: always()

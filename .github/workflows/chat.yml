@@ -75,7 +75,7 @@ jobs:
           done
 
           echo "Выполняем финальную проверку здоровья эндпоинта..."
-          curl -v --fail --retry 5 --retry-delay 3 --connect-timeout 5 http://127.0.0.1:8081/health
+          curl -v --fail --retry 5 --retry-delay 3 --connect-timeout 5 http://127.0.0.1:8082/health
       - name: down
         if: always()
         run: |
