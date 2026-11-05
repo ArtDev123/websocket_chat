@@ -35,13 +35,17 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         password = quote_plus(self.postgres_password)
+        # hello
         return (
             f"postgresql+psycopg2://{self.postgres_user}:{password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 
-    cors_origin_list: list[str] = ["http://localhost:8082", "http://127.0.0.1:8082", "http://localhost:8082/"]
-
+    cors_origin_list: list[str] = [
+        "http://localhost:8082",
+        "http://127.0.0.1:8082",
+        "http://localhost:8082/",
+    ]
 
 
 settings = Settings()
