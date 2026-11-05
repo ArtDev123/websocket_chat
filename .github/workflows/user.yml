@@ -1,0 +1,68 @@
+name: user
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: user_service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ruff
+        run: |
+          pip install -r requirements-dev.txt
+          ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: user_service
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: user_test
+          POSTGRES_USER: user_user
+          POSTGRES_PASSWORD: user_pass
+        ports:
+          - 5436:5432
+        options: >-
+          --health-cmd "pg_isready -U user_user -d user_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pytest
+        run: |
+          pip install -r requirements-dev.txt
+          pytest
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: broker
+        working-directory: rabbit
+        run: docker compose up -d --wait
+      - name: user service
+        working-directory: user_service
+        run: docker compose up -d --build --wait
+      - name: health
+        run: curl --fail --retry 10 --retry-delay 2 http://127.0.0.1:8081/health
+      - name: down
+        if: always()
+        run: |
+          docker compose -f user_service/docker-compose.yml down -v
+          docker compose -f rabbit/docker-compose.yml down -v

@@ -1,0 +1,68 @@
+name: chat
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chat_service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ruff
+        run: |
+          pip install -r requirements-dev.txt
+          ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chat_service
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: chat_test
+          POSTGRES_USER: chat_user
+          POSTGRES_PASSWORD: chat_pass
+        ports:
+          - 5437:5432
+        options: >-
+          --health-cmd "pg_isready -U chat_user -d chat_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pytest
+        run: |
+          pip install -r requirements-dev.txt
+          pytest
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: broker
+        working-directory: rabbit
+        run: docker compose up -d --wait
+      - name: chat service
+        working-directory: chat_service
+        run: docker compose up -d --build --wait
+      - name: health
+        run: curl --fail --retry 10 --retry-delay 2 http://127.0.0.1:8082/health
+      - name: down
+        if: always()
+        run: |
+          docker compose -f chat_service/docker-compose.yml down -v
+          docker compose -f rabbit/docker-compose.yml down -v

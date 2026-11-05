@@ -1,4 +1,4 @@
-from app.routes import messages, rooms, ws, profiles
+from app.routes import messages, profiles, rooms, ws
 
 
 def register_routes(app) -> None:
