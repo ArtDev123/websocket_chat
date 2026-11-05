@@ -60,7 +60,7 @@ jobs:
         working-directory: user_service
         run: docker compose up -d --build --wait
       - name: health
-        run: curl --fail --retry 10 --retry-delay 2 http://127.0.0.1:8081/health
+        run: curl --fail --retry 20 --retry-delay 5 --connect-timeout 5 http://127.0.0.1:8081/health
       - name: down
         if: always()
         run: |

@@ -1,9 +1,17 @@
 import jwt
+from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import settings
+
+
+def _patch_broker(monkeypatch) -> None:
+    mock = AsyncMock()
+    mock.close.return_value = None
+
+    monkeypatch.setattr("app.main.start_consumer", mock)
 
 
 def _token(user_id: int = 1, username: str = "alice") -> str:
@@ -14,7 +22,8 @@ def _token(user_id: int = 1, username: str = "alice") -> str:
     )
 
 
-def test_health_and_create_room() -> None:
+def test_health_and_create_room(monkeypatch) -> None:
+    _patch_broker(monkeypatch)
     assert settings.postgres_db == "chat_test"
 
     from app.main import app
