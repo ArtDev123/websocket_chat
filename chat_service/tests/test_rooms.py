@@ -1,5 +1,6 @@
-import jwt
 from unittest.mock import AsyncMock
+
+import jwt
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine

@@ -59,8 +59,23 @@ jobs:
       - name: chat service
         working-directory: chat_service
         run: docker compose up -d --build --wait
-      - name: health
-        run: curl --fail --retry 20 --retry-delay 5 --connect-timeout 5 http://127.0.0.1:8082/health
+      - name: Wait for service and check health
+        run: |
+          echo "Ожидаем запуск сервиса на порту 8082..."
+          
+          # Цикл будет пытаться достучаться до порта до 12 раз (максимум 60 секунд)
+          for i in {1..12}; do
+            if nc -z 127.0.0.1 8082; then
+              echo "Порт 8082 открыт! Даем 2 секунды на финальную инициализацию..."
+              sleep 2
+              break
+            fi
+            echo "Порт еще закрыт, ждем 5 секунд... (Попытка $i из 12)"
+            sleep 5
+          done
+
+          echo "Выполняем финальную проверку здоровья эндпоинта..."
+          curl -v --fail --retry 5 --retry-delay 3 --connect-timeout 5 http://127.0.0.1:8081/health
       - name: down
         if: always()
         run: |
