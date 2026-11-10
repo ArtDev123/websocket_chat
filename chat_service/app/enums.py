@@ -6,6 +6,7 @@ class WsClientType(StrEnum):
     LEAVE = "leave"
     MESSAGE = "message"
     DM = "dm"
+    TYPING = "typing"
 
 
 class WsServerType(StrEnum):
@@ -13,3 +14,4 @@ class WsServerType(StrEnum):
     MESSAGE = "message"
     DM = "dm"
     ERROR = "error"
+    TYPING = "typing"

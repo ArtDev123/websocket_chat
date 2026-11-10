@@ -26,7 +26,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await engine.dispose()
 
 
-
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Chat service",
@@ -36,9 +35,7 @@ def create_app() -> FastAPI:
     )
 
     @app.exception_handler(NotFoundError)
-    async def not_found_handler(
-        request: Request, exc: NotFoundError
-    ) -> JSONResponse:
+    async def not_found_handler(request: Request, exc: NotFoundError) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": exc.message})
 
     @app.get("/health")

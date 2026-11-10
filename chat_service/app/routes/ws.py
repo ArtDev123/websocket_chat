@@ -9,7 +9,14 @@ from app.manager import manager
 from app.repositories.messages import MessageRepository
 from app.repositories.profiles import UserProfileRepository
 from app.repositories.rooms import RoomRepository
-from app.schemas import WsDmOut, WsErrorOut, WsIncoming, WsMessageOut, WsSystemOut
+from app.schemas import (
+    WsDmOut,
+    WsErrorOut,
+    WsIncoming,
+    WsMessageOut,
+    WsSystemOut,
+    WsTypingOut,
+)
 
 router = APIRouter(tags=["ws"])
 
@@ -122,6 +129,20 @@ async def handle_dm(user: TokenUser, data: WsIncoming, session_factory) -> None:
     await manager.send_dto(data.to_user_id, dto)
 
 
+async def handle_typing(user: TokenUser, data: WsIncoming) -> None:
+    if data.room_id is None:
+        await send_error(user.id, "room_id required")
+        return
+    if user.id not in manager.rooms.get(data.room_id, set()):
+        await send_error(user.id, "join the room first")
+        return
+    await manager.broadcast_room(
+        data.room_id,
+        WsTypingOut(room_id=data.room_id, username=user.username),
+        exclude_user_id=user.id,
+    )
+
+
 async def dispatch(user: TokenUser, data: WsIncoming, session_factory) -> None:
     match data.type:
         case WsClientType.JOIN:
@@ -132,6 +153,8 @@ async def dispatch(user: TokenUser, data: WsIncoming, session_factory) -> None:
             await handle_message(user, data, session_factory)
         case WsClientType.DM:
             await handle_dm(user, data, session_factory)
+        case WsClientType.TYPING:
+            await handle_typing(user, data)
         case _:
             await send_error(user.id, f"unknown type: {data.type}")
 
@@ -139,7 +162,7 @@ async def dispatch(user: TokenUser, data: WsIncoming, session_factory) -> None:
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = "") -> None:
     session_factory = websocket.app.state.session_factory
-    user = await resolve_user(token, session_factory)
+    user = resolve_user(token)
     if user is None:
         # close() до accept() Starlette превращает в HTTP 403,
         # и код 4401 до клиента не доходит. Сначала accept, потом close.
@@ -163,4 +186,4 @@ async def websocket_endpoint(websocket: WebSocket, token: str = "") -> None:
                 continue
             await dispatch(user, data, session_factory)
     except WebSocketDisconnect:
-        manager.disconnect(user.id)
+        manager.disconnect(user.id, websocket)

@@ -36,6 +36,12 @@ class WsErrorOut(BaseModel):
     text: str
 
 
+class WsTypingOut(BaseModel):
+    type: WsServerType = WsServerType.TYPING
+    room_id: int
+    username: str
+
+
 class WsMessageOut(BaseModel):
     type: WsServerType = WsServerType.MESSAGE
     id: int

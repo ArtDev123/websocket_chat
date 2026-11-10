@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1>To-Do List</h1>
+        <button type="button" id="theme-toggle" class="theme-toggle">Светлая</button>
+      </header>
+
+      <form id="todo-form" class="form">
+        <input
+          id="todo-input"
+          class="input"
+          type="text"
+          name="task"
+          placeholder="Новая задача"
+          autocomplete="off"
+          required
+        />
+        <button type="submit" class="add-button">Добавить</button>
+      </form>
+
+      <p id="empty" class="empty" hidden>Список пуст</p>
+      <ul id="todo-list" class="list"></ul>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

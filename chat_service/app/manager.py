@@ -1,4 +1,4 @@
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 
@@ -10,11 +10,18 @@ class ConnectionManager:
     async def connect(self, user_id: int, websocket: WebSocket) -> None:
         await websocket.accept()
         old = self.active.get(user_id)
-        if old is not None and old is not websocket:
-            await old.close(code=4000)
         self.active[user_id] = websocket
+        if old is None or old is websocket:
+            return
+        try:
+            await old.close(code=4000)
+        except (WebSocketDisconnect, RuntimeError):
+            pass
 
-    def disconnect(self, user_id: int) -> None:
+    def disconnect(self, user_id: int, websocket: WebSocket | None = None) -> None:
+        current = self.active.get(user_id)
+        if websocket is not None and current is not websocket:
+            return
         self.active.pop(user_id, None)
         empty_rooms = [
             room_id
@@ -39,10 +46,20 @@ class ConnectionManager:
         ws = self.active.get(user_id)
         if ws is None:
             return
-        await ws.send_json(dto.model_dump(mode="json"))
+        try:
+            await ws.send_json(dto.model_dump(mode="json"))
+        except (WebSocketDisconnect, RuntimeError):
+            self.disconnect(user_id, ws)
 
-    async def broadcast_room(self, room_id: int, dto: BaseModel) -> None:
+    async def broadcast_room(
+        self,
+        room_id: int,
+        dto: BaseModel,
+        exclude_user_id: int | None = None,
+    ) -> None:
         for uid in list(self.rooms.get(room_id, set())):
+            if uid == exclude_user_id:
+                continue
             await self.send_dto(uid, dto)
 
 

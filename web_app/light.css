@@ -1,0 +1,12 @@
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6fb;
+  --text: #1a1d27;
+  --muted: #5c6578;
+  --surface: #ffffff;
+  --accent: #3d5ccc;
+  --accent-text: #ffffff;
+  --border: #d5dbe8;
+  --danger: #c43842;
+  --danger-text: #ffffff;
+}

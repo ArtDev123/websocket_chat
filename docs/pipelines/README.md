@@ -39,3 +39,5 @@ User-сервис и chat-сервис из [разреза монолита](..
 | Docker Compose | в третьей джобе собирает тот же образ, что на уроке |
 
 **Старт:** [step-01-test-db.md](step-01-test-db.md)
+
+Дальше урок про Cursor: три фичи чата на выбор, промпт и plan mode — [../cursor/README.md](../cursor/README.md).

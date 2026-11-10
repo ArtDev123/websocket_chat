@@ -95,6 +95,7 @@
       <button type="button" id="btn-logout" class="secondary">Logout</button>
     </div>
     <p id="ws-status" class="muted"></p>
+    <p id="typing" class="muted" hidden></p>
     <div id="log"></div>
     <div class="row" style="margin-top:0.75rem">
       <div style="flex:3">
@@ -110,9 +111,13 @@
   const USER_API = "http://127.0.0.1:8081";
   const $ = (id) => document.getElementById(id);
   const logEl = $("log");
+  const TYPING_HIDE_MS = 3000;
+  const TYPING_SEND_MS = 1000;
   let token = localStorage.getItem("token") || "";
   let ws = null;
   let currentRoomId = null;
+  let lastTypingSent = 0;
+  const typingUsers = new Map();
 
   function log(line, cls = "") {
     const div = document.createElement("div");
@@ -142,6 +147,43 @@
     $("chat-panel").classList.toggle("hidden", !loggedIn);
   }
 
+  function renderTyping() {
+    const names = [...typingUsers.keys()];
+    const el = $("typing");
+    if (!names.length) {
+      el.textContent = "";
+      el.hidden = true;
+      return;
+    }
+    const verb = names.length === 1 ? "печатает" : "печатают";
+    el.hidden = false;
+    el.textContent = `${names.join(", ")} ${verb}`;
+  }
+
+  function clearTyping() {
+    for (const timer of typingUsers.values()) clearTimeout(timer);
+    typingUsers.clear();
+    renderTyping();
+  }
+
+  function noteTyping(username) {
+    const prev = typingUsers.get(username);
+    if (prev) clearTimeout(prev);
+    typingUsers.set(username, setTimeout(() => {
+      typingUsers.delete(username);
+      renderTyping();
+    }, TYPING_HIDE_MS));
+    renderTyping();
+  }
+
+  function maybeSendTyping() {
+    if (!currentRoomId || !ws || ws.readyState !== WebSocket.OPEN) return;
+    const now = Date.now();
+    if (now - lastTypingSent < TYPING_SEND_MS) return;
+    lastTypingSent = now;
+    ws.send(JSON.stringify({ type: "typing", room_id: currentRoomId }));
+  }
+
   function wsUrl() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     return `${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`;
@@ -162,7 +204,9 @@
         log(`[room ${data.room_id}] ${data.sender}: ${data.text}`);
       else if (data.type === "dm")
         log(`[dm] ${data.sender} → ${data.recipient_id}: ${data.text}`);
-      else log(JSON.stringify(data));
+      else if (data.type === "typing" && data.room_id === currentRoomId)
+        noteTyping(data.username);
+      else if (data.type !== "typing") log(JSON.stringify(data));
     };
   }
 
@@ -249,6 +293,7 @@
 
   $("btn-join").onclick = async () => {
     currentRoomId = Number($("rooms").value);
+    clearTyping();
     ws.send(JSON.stringify({ type: "join", room_id: currentRoomId }));
     try {
       const history = await api(`/rooms/${currentRoomId}/messages`);
@@ -267,6 +312,8 @@
       );
     } catch (e) { log(e.message, "err"); }
   };
+
+  $("text").addEventListener("input", maybeSendTyping);
 
   $("btn-send-room").onclick = () => {
     const text = $("text").value.trim();
